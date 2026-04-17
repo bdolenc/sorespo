@@ -29,7 +29,7 @@
     try {
       loading = true;
       error = '';
-      const response = await restconfGetJson(serviceModule.restconfRoot);
+      const response = await restconfGetJson(serviceModule.collectionRestconfRoot ?? serviceModule.restconfRoot);
       items = serviceModule.list(response);
     } catch (loadError) {
       error = loadError instanceof Error ? loadError.message : 'Failed to load existing services.';

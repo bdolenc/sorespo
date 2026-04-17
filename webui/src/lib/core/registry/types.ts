@@ -13,6 +13,7 @@ export interface ServiceModule<TDraft = unknown> {
   title: string;
   collectionLabel: string;
   description: string;
+  collectionRestconfRoot?: string;
   restconfRoot: string;
   keyParam: string;
   createDraft(): TDraft;
