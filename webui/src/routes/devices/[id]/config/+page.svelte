@@ -127,8 +127,12 @@
   }
 
   .breadcrumb a {
-    color: var(--brand);
+    color: var(--sw-accent);
     text-decoration: none;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--sw-text-primary);
   }
 
   .config-page {
@@ -166,25 +170,32 @@
 
   .segmented {
     display: flex;
-    gap: 0.3rem;
-    flex-wrap: wrap;
-    padding: 0.3rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface-alt);
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-deep);
   }
 
   .segmented button {
-    padding: 0.55rem 0.9rem;
+    padding: 7px 14px;
     border: none;
-    border-radius: 999px;
+    border-radius: 6px;
     background: transparent;
+    color: var(--sw-text-secondary);
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .segmented button:hover {
+    color: var(--sw-text-primary);
   }
 
   .segmented button.active {
-    background: var(--brand);
-    color: white;
+    background: var(--sw-bg-elevated);
+    color: var(--sw-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   .config-page__content pre {
@@ -192,8 +203,9 @@
     padding: 1rem;
     min-height: 26rem;
     overflow: auto;
-    border-radius: 1rem;
-    background: #0f2335;
-    color: #dcecf9;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-deep);
+    border: 1px solid var(--sw-border-subtle);
+    color: var(--sw-text-secondary);
   }
 </style>

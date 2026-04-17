@@ -341,15 +341,16 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.7rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 0.9rem;
-    background: white;
+    border: 1px solid var(--sw-border-subtle);
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-card);
     cursor: pointer;
+    color: var(--sw-text-primary);
   }
 
   .queue-device__item.active {
-    border-color: var(--brand);
-    background: rgba(13, 90, 136, 0.08);
+    border-color: var(--sw-accent-dim);
+    background: var(--sw-accent-glow);
   }
 
   .queue-device__item small {
@@ -389,22 +390,33 @@
   }
 
   .segmented {
-    padding: 0.3rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface-alt);
+    padding: 3px;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-deep);
+    display: flex;
+    gap: 2px;
   }
 
   .segmented button {
-    padding: 0.55rem 0.9rem;
+    padding: 7px 14px;
     border: none;
-    border-radius: 999px;
+    border-radius: 6px;
     background: transparent;
+    color: var(--sw-text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .segmented button:hover {
+    color: var(--sw-text-primary);
   }
 
   .segmented button.active {
-    background: var(--brand);
-    color: white;
+    background: var(--sw-bg-elevated);
+    color: var(--sw-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   pre {
@@ -412,9 +424,10 @@
     min-height: 28rem;
     overflow: auto;
     padding: 1rem;
-    border-radius: 1rem;
-    background: #0f2335;
-    color: #dcecf9;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-deep);
+    border: 1px solid var(--sw-border-subtle);
+    color: var(--sw-text-secondary);
   }
 
   @media (max-width: 980px) {

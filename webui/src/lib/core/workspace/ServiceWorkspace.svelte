@@ -30,16 +30,17 @@
   }
 </script>
 
-<div class="service-workspace">
+<div class="workspace">
   <div class="page-header">
     <div>
       <h2>{title}</h2>
       <p>{subtitle}</p>
     </div>
-    <div class="service-workspace__meta">
+    <div class="workspace__meta">
       <span class="pill">{module.collectionLabel}</span>
       <span class:success={validation.ok} class:warning={!validation.ok} class="pill">
-        {validation.ok ? 'Valid draft' : 'Needs fixes'}
+        <span class="dot"></span>
+        {validation.ok ? 'Valid' : 'Needs fixes'}
       </span>
     </div>
   </div>
@@ -51,24 +52,29 @@
   {#if loading}
     <div class="loading-state">Loading service data...</div>
   {:else}
-    <div class="service-workspace__grid">
-      <section class="panel service-workspace__editor">
-        <div class="service-workspace__section-header">
+    <div class="workspace__grid">
+      <section class="workspace__editor card">
+        <div class="card-header">
           <h3>Editor</h3>
+          <span class="card-badge">{module.id}</span>
           {#if module.Summary}
-            <svelte:component this={module.Summary} {draft} />
+            <div style="margin-left: auto;">
+              <svelte:component this={module.Summary} {draft} />
+            </div>
           {/if}
         </div>
 
-        <svelte:component
-          this={Editor}
-          {draft}
-          errors={validation.errors}
-          on:change={(event: Event) => forwardChange(event as CustomEvent<unknown>)}
-        />
+        <div class="card-body">
+          <svelte:component
+            this={Editor}
+            {draft}
+            errors={validation.errors}
+            on:change={(event: Event) => forwardChange(event as CustomEvent<unknown>)}
+          />
+        </div>
       </section>
 
-      <div class="service-workspace__sidebar">
+      <div class="workspace__sidebar">
         <ValidationPanel {validation} />
         <PreviewPanel {draft} {payload} Preview={module.Preview} />
       </div>
@@ -79,55 +85,37 @@
 </div>
 
 <style>
-  .service-workspace {
+  .workspace {
     display: grid;
-    gap: 1.25rem;
+    gap: 20px;
   }
 
-  .service-workspace__meta {
+  .workspace__meta {
     display: flex;
-    gap: 0.65rem;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
   }
 
-  .service-workspace__grid {
+  .workspace__grid {
     display: grid;
-    gap: 1.25rem;
-    grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr);
+    gap: 20px;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
   }
 
-  .service-workspace__editor,
-  .service-workspace__sidebar {
+  .workspace__editor,
+  .workspace__sidebar {
     min-width: 0;
   }
 
-  .service-workspace__editor {
+  .workspace__sidebar {
     display: grid;
-    gap: 1.25rem;
-  }
-
-  .service-workspace__section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .service-workspace__section-header h3 {
-    margin: 0;
-  }
-
-  .service-workspace__sidebar {
-    display: grid;
-    gap: 1.25rem;
+    gap: 16px;
     align-content: start;
   }
 
   @media (max-width: 980px) {
-    .service-workspace__grid {
+    .workspace__grid {
       grid-template-columns: 1fr;
     }
   }
