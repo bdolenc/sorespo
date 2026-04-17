@@ -13,18 +13,19 @@
 
 <div class="service-grid">
   {#each modules as module}
-    <article class="card service-card">
-      <div class="service-card__header">
-        <div>
-          <h3>{module.title}</h3>
-          <p>{module.description}</p>
-        </div>
-        <span class="pill">{module.collectionLabel}</span>
+    <article class="service-card card">
+      <div class="card-header">
+        <h3>{module.title}</h3>
+        <span class="card-badge" style="margin-left:auto;">{module.collectionLabel}</span>
       </div>
 
-      <div class="service-card__actions">
-        <a class="btn btn-primary" href={`/services/${module.id}/new`}>Create new</a>
-        <a class="btn btn-secondary" href={`/services/${module.id}`}>Browse existing</a>
+      <div class="card-body">
+        <p class="service-card__desc">{module.description}</p>
+
+        <div class="service-card__actions">
+          <a class="btn btn-primary" href={`/services/${module.id}/new`}>+ Create new</a>
+          <a class="btn btn-secondary" href={`/services/${module.id}`}>Browse existing</a>
+        </div>
       </div>
     </article>
   {/each}
@@ -33,34 +34,20 @@
 <style>
   .service-grid {
     display: grid;
-    gap: 1rem;
+    gap: 16px;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 
-  .service-card {
-    display: grid;
-    gap: 1.25rem;
-    padding: 1.35rem;
-  }
-
-  .service-card__header {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .service-card__header h3,
-  .service-card__header p {
-    margin: 0;
-  }
-
-  .service-card__header p {
-    margin-top: 0.45rem;
-    color: var(--text-muted);
+  .service-card__desc {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--sw-text-secondary);
+    line-height: 1.5;
   }
 
   .service-card__actions {
     display: flex;
-    gap: 0.75rem;
+    gap: 8px;
     flex-wrap: wrap;
   }
 </style>

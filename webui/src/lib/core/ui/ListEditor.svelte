@@ -37,6 +37,7 @@
 <div class="list-editor">
   <div class="list-editor__header">
     <strong>{label}</strong>
+    <span class="list-editor__count">{items.length}</span>
   </div>
 
   {#if items.length === 0}
@@ -45,53 +46,154 @@
     <div class="list-editor__items">
       {#each items as item, index}
         <div class="list-editor__row">
-          <input type="text" value={item} on:input={(event) => updateItem(index, (event.currentTarget as HTMLInputElement).value)} />
-          <button type="button" class="btn" on:click={() => removeItem(index)}>Remove</button>
+          <span class="list-editor__drag">⋮⋮</span>
+          <input
+            type="text"
+            value={item}
+            on:input={(event) => updateItem(index, (event.currentTarget as HTMLInputElement).value)}
+          />
+          <button type="button" class="list-editor__remove" on:click={() => removeItem(index)}>✕</button>
         </div>
       {/each}
     </div>
   {/if}
 
-  <div class="list-editor__row">
-    <input type="text" bind:value={pending} {placeholder} />
-    <button type="button" class="btn btn-secondary" on:click={addItem}>Add</button>
+  <div class="list-editor__add-row">
+    <input
+      type="text"
+      bind:value={pending}
+      {placeholder}
+      on:keydown={(e) => e.key === 'Enter' && addItem()}
+    />
+    <button type="button" class="btn btn-sm" on:click={addItem}>Add</button>
   </div>
 </div>
 
 <style>
   .list-editor {
     display: grid;
-    gap: 0.8rem;
+    gap: 10px;
   }
 
   .list-editor__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--sw-text-label);
+  }
+
+  .list-editor__count {
+    font-family: var(--sw-font-mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: var(--sw-bg-elevated);
+    color: var(--sw-text-muted);
   }
 
   .list-editor__empty {
     margin: 0;
-    color: var(--text-muted);
+    padding: 12px;
+    text-align: center;
+    color: var(--sw-text-muted);
+    font-size: 12px;
+    border: 1px dashed var(--sw-border-default);
+    border-radius: var(--sw-radius-md);
   }
 
   .list-editor__items {
     display: grid;
-    gap: 0.6rem;
+    gap: 6px;
   }
 
   .list-editor__row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--sw-border-subtle);
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-elevated);
+    transition: border-color 0.15s;
   }
 
-  input {
+  .list-editor__row:hover {
+    border-color: var(--sw-border-default);
+  }
+
+  .list-editor__drag {
+    color: var(--sw-text-muted);
+    cursor: grab;
+    font-size: 11px;
+    letter-spacing: 1px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .list-editor__row input {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--sw-bg-input);
+    border: 1px solid var(--sw-border-default);
+    border-radius: var(--sw-radius-sm);
+    color: var(--sw-text-primary);
+    font-family: var(--sw-font-mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .list-editor__row input:focus {
+    border-color: var(--sw-accent);
+  }
+
+  .list-editor__remove {
+    background: none;
+    border: none;
+    color: var(--sw-text-muted);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--sw-radius-sm);
+    font-size: 12px;
+    transition: all 0.15s;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+
+  .list-editor__row:hover .list-editor__remove {
+    opacity: 1;
+  }
+
+  .list-editor__remove:hover {
+    color: var(--sw-danger);
+    background: var(--sw-danger-dim);
+  }
+
+  .list-editor__add-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+
+  .list-editor__add-row input {
     width: 100%;
-    padding: 0.75rem 0.9rem;
-    border-radius: 0.9rem;
-    border: 1px solid var(--border);
-    background: var(--surface-alt);
-    color: var(--text);
+    padding: 8px 12px;
+    background: var(--sw-bg-input);
+    border: 1px solid var(--sw-border-default);
+    border-radius: var(--sw-radius-md);
+    color: var(--sw-text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .list-editor__add-row input::placeholder {
+    color: var(--sw-text-muted);
+  }
+
+  .list-editor__add-row input:focus {
+    border-color: var(--sw-accent);
   }
 </style>

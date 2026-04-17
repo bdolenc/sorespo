@@ -42,9 +42,14 @@
     <p>Browse discovered devices and open their configuration and queue views.</p>
   </div>
 
-  <label class="device-search">
+  <label>
     <span class="sr-only">Search devices</span>
-    <input type="search" bind:value={searchQuery} placeholder="Search devices..." />
+    <input
+      class="device-search"
+      type="search"
+      bind:value={searchQuery}
+      placeholder="Search devices..."
+    />
   </label>
 </div>
 
@@ -62,76 +67,80 @@
       <a class="device-card card" href={`/devices/${device.id}`}>
         <div class="device-card__header">
           <h3>{device.name}</h3>
-          <span class="pill">Device</span>
+          <span class="pill">
+            <span class="dot" style="background: var(--sw-success);"></span>
+            Device
+          </span>
         </div>
-        <p class="device-card__meta monospace">{device.id}</p>
+        <p class="device-card__id">{device.id}</p>
       </a>
     {/each}
   </div>
 {/if}
 
 <style>
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  .device-search {
+    min-width: 16rem;
+    padding: 9px 12px;
+    border-radius: var(--sw-radius-md);
+    border: 1px solid var(--sw-border-default);
+    background: var(--sw-bg-input);
+    color: var(--sw-text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
 
-  .device-search input {
-    min-width: 18rem;
-    padding: 0.8rem 1rem;
-    border-radius: 1rem;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.88);
+  .device-search::placeholder {
+    color: var(--sw-text-muted);
+  }
+
+  .device-search:focus {
+    border-color: var(--sw-accent);
+    box-shadow: 0 0 0 3px var(--sw-accent-glow);
   }
 
   .device-grid {
     display: grid;
-    gap: 1rem;
+    gap: 12px;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 
   .device-card {
     display: grid;
-    gap: 0.9rem;
-    padding: 1.35rem;
+    gap: 10px;
+    padding: 20px;
     text-decoration: none;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    transition: border-color 0.2s, transform 0.2s;
   }
 
   .device-card:hover {
     transform: translateY(-2px);
-    border-color: var(--brand);
+    border-color: var(--sw-accent-dim);
   }
 
   .device-card__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.8rem;
+    gap: 8px;
   }
 
-  .device-card__header h3,
-  .device-card__meta {
+  .device-card__header h3 {
     margin: 0;
+    font-size: 15px;
+    font-weight: 600;
   }
 
-  .device-card__meta {
-    color: var(--text-muted);
+  .device-card__id {
+    margin: 0;
+    font-family: var(--sw-font-mono);
+    font-size: 12px;
+    color: var(--sw-accent);
   }
 
   @media (max-width: 640px) {
     .device-search {
-      width: 100%;
-    }
-
-    .device-search input {
       width: 100%;
       min-width: 0;
     }

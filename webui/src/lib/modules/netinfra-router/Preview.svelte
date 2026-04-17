@@ -6,47 +6,47 @@
 </script>
 
 <div class="preview">
-  <div class="preview__meta">
-    <div>
-      <strong>RESTCONF path</strong>
-      <span class="monospace">/restconf/data/netinfra:netinfra/router={draft.name || '<name>'}</span>
+  <dl class="preview__meta">
+    <div class="preview__meta-item">
+      <dt>RESTCONF path</dt>
+      <dd><code>/restconf/data/netinfra:netinfra/router={draft.name || '&lt;name&gt;'}</code></dd>
     </div>
-    <div>
-      <strong>Collection</strong>
-      <span>{draft.type || 'Unassigned platform'}</span>
+    <div class="preview__meta-item">
+      <dt>Collection</dt>
+      <dd>{draft.type || 'Unassigned platform'}</dd>
     </div>
-  </div>
+  </dl>
   <pre>{JSON.stringify(payload, null, 2)}</pre>
 </div>
 
 <style>
   .preview {
     display: grid;
-    gap: 1rem;
+    gap: 16px;
   }
 
   .preview__meta {
     display: grid;
-    gap: 0.75rem;
-  }
-
-  .preview__meta div {
-    display: grid;
-    gap: 0.2rem;
-  }
-
-  .preview__meta span {
-    color: var(--text-muted);
-  }
-
-  pre {
+    gap: 12px;
     margin: 0;
-    padding: 1rem;
-    overflow: auto;
-    border-radius: 1rem;
-    background: #0f2335;
-    color: #dcecf9;
-    font-size: 0.88rem;
-    line-height: 1.55;
+  }
+
+  .preview__meta-item {
+    display: grid;
+    gap: 2px;
+  }
+
+  .preview__meta dt {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sw-text-muted);
+  }
+
+  .preview__meta dd {
+    margin: 0;
+    font-size: 13px;
+    color: var(--sw-text-secondary);
   }
 </style>
