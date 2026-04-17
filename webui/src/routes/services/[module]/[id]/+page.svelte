@@ -1,10 +1,12 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
   import { onDestroy, onMount } from 'svelte';
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
-  import { getListEntryPath, restconfGetJson, restconfPutJson } from '$lib/core/restconf/client';
+  import { getListEntryPath, restconfDelete, restconfGetJson, restconfPutJson } from '$lib/core/restconf/client';
+  import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
   export let data: { moduleId: string; serviceId: string };
@@ -25,9 +27,11 @@
   let validation = serviceModule.validate(draft);
   let dirty = false;
   let saving = false;
+  let deleting = false;
   let loading = true;
   let validationActive = false;
   let validationKey = 0;
+  let confirmDeleteOpen = false;
   let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
   let lastLoadedKey = '';
 
@@ -120,6 +124,33 @@
     }
   }
 
+  async function handleDelete(): Promise<void> {
+    if (!serviceModule.deletable) {
+      return;
+    }
+
+    try {
+      deleting = true;
+      statusMessage = null;
+      await restconfDelete(getListEntryPath(serviceModule.restconfRoot, data.serviceId));
+      await goto(`/services/${serviceModule.id}`, {
+        invalidateAll: true
+      });
+    } catch (deleteError) {
+      statusMessage = {
+        type: 'error',
+        text: deleteError instanceof Error ? deleteError.message : 'Failed to delete service draft.'
+      };
+    } finally {
+      deleting = false;
+    }
+  }
+
+  async function confirmDelete(): Promise<void> {
+    confirmDeleteOpen = false;
+    await handleDelete();
+  }
+
   function handleReset(): void {
     validationActive = false;
     validationKey += 1;
@@ -148,15 +179,28 @@
   {validation}
   {dirty}
   {saving}
+  {deleting}
   {loading}
   {validationActive}
   {validationKey}
   saveDisabled={!validation.ok || !getKey()}
+  showDelete={serviceModule.deletable ?? false}
+  deleteDisabled={loading}
   {statusMessage}
   on:change={(event) => store.set(event.detail)}
   on:touch={() => (validationActive = true)}
   on:reset={handleReset}
   on:save={handleSave}
+  on:delete={() => (confirmDeleteOpen = true)}
+/>
+
+<ConfirmDialog
+  open={confirmDeleteOpen}
+  title={`Remove ${data.serviceId}?`}
+  message="This removes the RESTCONF entry for this service."
+  confirmLabel="Remove"
+  on:cancel={() => (confirmDeleteOpen = false)}
+  on:confirm={confirmDelete}
 />
 
 <style>
