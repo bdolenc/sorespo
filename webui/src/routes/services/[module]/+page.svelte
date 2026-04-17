@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from '$app/environment';
   import { onMount } from 'svelte';
 
   import { getServiceModule } from '$lib/core/registry/service-modules';
@@ -7,8 +8,8 @@
 
   export let data: { moduleId: string; title: string; description: string };
 
-  const serviceModule = getServiceModule(data.moduleId);
-
+  let serviceModule = getServiceModule(data.moduleId);
+  let lastModuleId = '';
   let loading = Boolean(serviceModule?.list);
   let removingId = '';
   let error = '';
@@ -24,6 +25,21 @@
 
     loadItems();
   });
+
+  $: if (browser && data.moduleId !== lastModuleId) {
+    lastModuleId = data.moduleId;
+    serviceModule = getServiceModule(data.moduleId);
+    loading = Boolean(serviceModule?.list);
+    removingId = '';
+    error = '';
+    statusMessage = null;
+    pendingRemoval = null;
+    items = [];
+
+    if (serviceModule?.list) {
+      loadItems();
+    }
+  }
 
   async function loadItems(): Promise<void> {
     if (!serviceModule?.list) {

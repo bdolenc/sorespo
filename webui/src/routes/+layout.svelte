@@ -5,7 +5,10 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
 
+  import { listServiceModuleMeta } from '$lib/core/registry/service-modules';
   import { fetchAllDeviceQueues } from '$lib/core/orchestron/client';
+
+  const serviceModules = listServiceModuleMeta();
 
   let totalPendingCount = 0;
   let pollHandle: ReturnType<typeof setInterval> | null = null;
@@ -63,6 +66,18 @@
     </div>
     <nav class="sidebar-nav" aria-label="Primary navigation">
       <div class="nav-section">
+        <div class="nav-section-label">Overview</div>
+        <a
+          class="nav-item"
+          class:active={currentPathname === '/'}
+          href="/"
+        >
+          <span class="nav-icon">◉</span>
+          Dashboard
+        </a>
+      </div>
+
+      <div class="nav-section">
         <div class="nav-section-label">Network Infra</div>
         <a
           class="nav-item"
@@ -99,6 +114,19 @@
           <span class="nav-icon">◈</span>
           Service Modules
         </a>
+
+        <div class="nav-subsection">
+          {#each serviceModules as serviceModule}
+            <a
+              class="nav-item nav-item--sub"
+              class:active={currentPathname.startsWith(`/services/${serviceModule.id}`)}
+              href={`/services/${serviceModule.id}`}
+            >
+              <span class="nav-icon">·</span>
+              {serviceModule.title}
+            </a>
+          {/each}
+        </div>
       </div>
     </nav>
   </aside>
@@ -127,3 +155,23 @@
     </main>
   </div>
 </div>
+
+<style>
+  .nav-subsection {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+    padding-left: 12px;
+  }
+
+  .nav-item--sub {
+    font-size: 12px;
+    padding-left: 28px;
+    color: var(--sw-text-muted);
+  }
+
+  .nav-item--sub .nav-icon {
+    width: 12px;
+    font-size: 14px;
+  }
+</style>

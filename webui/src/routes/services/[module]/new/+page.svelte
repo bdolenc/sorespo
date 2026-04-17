@@ -9,17 +9,9 @@
 
   export let data: { moduleId: string };
 
-  const serviceModule = (() => {
-    const module = getServiceModule(data.moduleId);
-
-    if (!module) {
-      throw new Error(`Unknown service module: ${data.moduleId}`);
-    }
-
-    return module;
-  })();
-
-  const store = createDraftStore(serviceModule.createDraft(), serviceModule.validate);
+  let serviceModule = resolveServiceModule(data.moduleId);
+  let store = createDraftStore(serviceModule.createDraft(), serviceModule.validate);
+  let lastModuleId = data.moduleId;
 
   let draft = serviceModule.createDraft();
   let validation = serviceModule.validate(draft);
@@ -29,23 +21,60 @@
   let validationKey = 0;
   let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
 
-  const unsubscribeDraft = store.draft.subscribe((value) => {
-    draft = value;
-  });
+  let unsubscribeDraft = () => {};
+  let unsubscribeValidation = () => {};
+  let unsubscribeDirty = () => {};
 
-  const unsubscribeValidation = store.validation.subscribe((value) => {
-    validation = value;
-  });
-
-  const unsubscribeDirty = store.dirty.subscribe((value) => {
-    dirty = value;
-  });
+  bindStore(store);
 
   onDestroy(() => {
+    unbindStore();
+  });
+
+  $: if (data.moduleId !== lastModuleId) {
+    lastModuleId = data.moduleId;
+    initializeModule(data.moduleId);
+  }
+
+  function resolveServiceModule(moduleId: string) {
+    const module = getServiceModule(moduleId);
+
+    if (!module) {
+      throw new Error(`Unknown service module: ${moduleId}`);
+    }
+
+    return module;
+  }
+
+  function unbindStore(): void {
     unsubscribeDraft();
     unsubscribeValidation();
     unsubscribeDirty();
-  });
+  }
+
+  function bindStore(nextStore: ReturnType<typeof createDraftStore>): void {
+    unbindStore();
+
+    store = nextStore;
+    unsubscribeDraft = store.draft.subscribe((value) => {
+      draft = value;
+    });
+    unsubscribeValidation = store.validation.subscribe((value) => {
+      validation = value;
+    });
+    unsubscribeDirty = store.dirty.subscribe((value) => {
+      dirty = value;
+    });
+  }
+
+  function initializeModule(moduleId: string): void {
+    serviceModule = resolveServiceModule(moduleId);
+    bindStore(createDraftStore(serviceModule.createDraft(), serviceModule.validate));
+    validationActive = false;
+    validationKey += 1;
+    saving = false;
+    statusMessage = null;
+  }
 
   function getKey(): string {
     const value = (draft as Record<string, unknown>)[serviceModule.keyParam];
@@ -96,20 +125,22 @@
   }
 </script>
 
-<ServiceWorkspace
-  module={serviceModule}
-  title={`Create ${serviceModule.title}`}
-  subtitle="Start from an empty draft, validate it locally, and save directly into RESTCONF."
-  {draft}
-  {validation}
-  {dirty}
-  {saving}
-  {validationActive}
-  {validationKey}
-  saveDisabled={!validation.ok || !getKey()}
-  {statusMessage}
-  on:change={(event) => store.set(event.detail)}
-  on:touch={() => (validationActive = true)}
-  on:reset={handleReset}
-  on:save={handleSave}
-/>
+{#if serviceModule}
+  <ServiceWorkspace
+    module={serviceModule}
+    title={`Create ${serviceModule.title}`}
+    subtitle="Start from an empty draft, validate it locally, and save directly into RESTCONF."
+    {draft}
+    {validation}
+    {dirty}
+    {saving}
+    {validationActive}
+    {validationKey}
+    saveDisabled={!validation.ok || !getKey()}
+    {statusMessage}
+    on:change={(event) => store.set(event.detail)}
+    on:touch={() => (validationActive = true)}
+    on:reset={handleReset}
+    on:save={handleSave}
+  />
+{/if}
