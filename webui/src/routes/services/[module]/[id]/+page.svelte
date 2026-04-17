@@ -11,18 +11,8 @@
 
   export let data: { moduleId: string; serviceId: string };
 
-  const serviceModule = (() => {
-    const module = getServiceModule(data.moduleId);
-
-    if (!module) {
-      throw new Error(`Unknown service module: ${data.moduleId}`);
-    }
-
-    return module;
-  })();
-
-  const store = createDraftStore(serviceModule.createDraft(), serviceModule.validate);
-
+  let serviceModule = resolveServiceModule(data.moduleId);
+  let store = createDraftStore(serviceModule.createDraft(), serviceModule.validate);
   let draft = serviceModule.createDraft();
   let validation = serviceModule.validate(draft);
   let dirty = false;
@@ -33,28 +23,22 @@
   let validationKey = 0;
   let confirmDeleteOpen = false;
   let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
-  let lastLoadedKey = '';
+  let lastRouteKey = '';
 
-  const unsubscribeDraft = store.draft.subscribe((value) => {
-    draft = value;
-  });
+  let unsubscribeDraft = () => {};
+  let unsubscribeValidation = () => {};
+  let unsubscribeDirty = () => {};
 
-  const unsubscribeValidation = store.validation.subscribe((value) => {
-    validation = value;
-  });
-
-  const unsubscribeDirty = store.dirty.subscribe((value) => {
-    dirty = value;
-  });
+  bindStore(store);
 
   onDestroy(() => {
-    unsubscribeDraft();
-    unsubscribeValidation();
-    unsubscribeDirty();
+    unbindStore();
   });
 
-  $: if (browser && data.serviceId && data.serviceId !== lastLoadedKey) {
-    lastLoadedKey = data.serviceId;
+  $: routeKey = `${data.moduleId}:${data.serviceId}`;
+  $: if (browser && routeKey !== lastRouteKey) {
+    lastRouteKey = routeKey;
+    initializeModule(data.moduleId);
     loadDraft();
   }
 
@@ -66,6 +50,49 @@
       window.removeEventListener('global-refresh', handleRefresh);
     };
   });
+
+  function resolveServiceModule(moduleId: string) {
+    const module = getServiceModule(moduleId);
+
+    if (!module) {
+      throw new Error(`Unknown service module: ${moduleId}`);
+    }
+
+    return module;
+  }
+
+  function unbindStore(): void {
+    unsubscribeDraft();
+    unsubscribeValidation();
+    unsubscribeDirty();
+  }
+
+  function bindStore(nextStore: ReturnType<typeof createDraftStore>): void {
+    unbindStore();
+
+    store = nextStore;
+    unsubscribeDraft = store.draft.subscribe((value) => {
+      draft = value;
+    });
+    unsubscribeValidation = store.validation.subscribe((value) => {
+      validation = value;
+    });
+    unsubscribeDirty = store.dirty.subscribe((value) => {
+      dirty = value;
+    });
+  }
+
+  function initializeModule(moduleId: string): void {
+    serviceModule = resolveServiceModule(moduleId);
+    bindStore(createDraftStore(serviceModule.createDraft(), serviceModule.validate));
+    saving = false;
+    deleting = false;
+    loading = true;
+    validationActive = false;
+    validationKey += 1;
+    confirmDeleteOpen = false;
+    statusMessage = null;
+  }
 
   async function loadDraft(silent = false): Promise<void> {
     try {
