@@ -3,12 +3,17 @@
 
   export let dirty = false;
   export let saving = false;
+  export let deleting = false;
   export let saveDisabled = false;
   export let saveLabel = 'Save';
+  export let showDelete = false;
+  export let deleteDisabled = false;
+  export let deleteLabel = 'Delete';
 
   const dispatch = createEventDispatcher<{
     save: void;
     reset: void;
+    delete: void;
   }>();
 </script>
 
@@ -20,6 +25,11 @@
     </div>
 
     <div class="save-bar__actions">
+      {#if showDelete}
+        <button class="btn btn-danger" type="button" disabled={deleteDisabled || deleting || saving} on:click={() => dispatch('delete')}>
+          {deleting ? 'Deleting...' : deleteLabel}
+        </button>
+      {/if}
       <button class="btn" type="button" disabled={!dirty || saving} on:click={() => dispatch('reset')}>
         Reset
       </button>
@@ -61,6 +71,7 @@
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   @media (max-width: 720px) {

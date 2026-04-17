@@ -6,10 +6,14 @@ function normalizePath(path: string): string {
   return path.replace(/^\/+/, '');
 }
 
-async function readResponse<T>(response: Response): Promise<T> {
+async function readResponse<T>(response: Response, readBody = true): Promise<T> {
   if (!response.ok) {
     const message = (await response.text()) || response.statusText;
     throw new Error(`RESTCONF ${response.status}: ${message}`);
+  }
+
+  if (!readBody) {
+    return null as T;
   }
 
   const text = await response.text();
@@ -45,7 +49,7 @@ export async function restconfRequest<T>(
     headers
   });
 
-  return readResponse<T>(response);
+  return readResponse<T>(response, init.readBody ?? true);
 }
 
 export function restconfGetJson<T>(path: string): Promise<T> {
@@ -60,14 +64,16 @@ export function restconfPutJson<T>(path: string, body: unknown): Promise<T> {
     method: 'PUT',
     body: JSON.stringify(body),
     accept: 'application/yang-data+json',
-    contentType: 'application/yang-data+json'
+    contentType: 'application/yang-data+json',
+    readBody: false
   });
 }
 
 export function restconfDelete(path: string): Promise<unknown> {
   return restconfRequest(path, {
     method: 'DELETE',
-    accept: 'application/yang-data+json'
+    accept: 'application/yang-data+json',
+    readBody: false
   });
 }
 

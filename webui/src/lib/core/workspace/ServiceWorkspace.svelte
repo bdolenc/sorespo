@@ -15,11 +15,15 @@
   export let validation: ValidationResult;
   export let dirty = false;
   export let saving = false;
+  export let deleting = false;
   export let saveDisabled = false;
   export let loading = false;
   export let validationActive = false;
   export let validationKey = 0;
   export let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
+  export let showDelete = false;
+  export let deleteDisabled = false;
+  export let deleteLabel = 'Delete';
 
   const dispatch = createEventDispatcher();
   let Editor: any;
@@ -91,7 +95,18 @@
     </div>
   {/if}
 
-  <SaveBar {dirty} {saving} {saveDisabled} on:save={() => dispatch('save')} on:reset={() => dispatch('reset')} />
+  <SaveBar
+    {dirty}
+    {saving}
+    {deleting}
+    {saveDisabled}
+    {showDelete}
+    {deleteDisabled}
+    {deleteLabel}
+    on:save={() => dispatch('save')}
+    on:reset={() => dispatch('reset')}
+    on:delete={() => dispatch('delete')}
+  />
 </div>
 
 <style>
