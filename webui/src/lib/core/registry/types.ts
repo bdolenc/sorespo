@@ -21,7 +21,7 @@ export interface ServiceModule<TDraft = unknown> {
   list?(input: unknown): ServiceListItem[];
   validate(draft: TDraft): ValidationResult;
   serialize(draft: TDraft): unknown;
-  Editor: Component<{ draft: TDraft; errors: Record<string, string> }>;
+  Editor: Component<{ draft: TDraft; errors: Record<string, string>; validationKey?: number }>;
   Summary?: Component<{ draft: TDraft }>;
   Preview?: Component<{ draft: TDraft; payload: unknown }>;
 }

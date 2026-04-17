@@ -17,6 +17,8 @@
   export let saving = false;
   export let saveDisabled = false;
   export let loading = false;
+  export let validationActive = false;
+  export let validationKey = 0;
   export let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
 
   const dispatch = createEventDispatcher();
@@ -38,9 +40,15 @@
     </div>
     <div class="workspace__meta">
       <span class="pill">{module.collectionLabel}</span>
-      <span class:success={validation.ok} class:warning={!validation.ok} class="pill">
+      <span class:success={validationActive && validation.ok} class:warning={validationActive && !validation.ok} class="pill">
         <span class="dot"></span>
-        {validation.ok ? 'Valid' : 'Needs fixes'}
+        {#if !validationActive}
+          Awaiting input
+        {:else if validation.ok}
+          Valid
+        {:else}
+          Needs fixes
+        {/if}
       </span>
     </div>
   </div>
@@ -69,13 +77,15 @@
             this={Editor}
             {draft}
             errors={validation.errors}
+            {validationKey}
             on:change={(event: Event) => forwardChange(event as CustomEvent<unknown>)}
+            on:touch={() => dispatch('touch')}
           />
         </div>
       </section>
 
       <div class="workspace__sidebar">
-        <ValidationPanel {validation} />
+        <ValidationPanel {validation} active={validationActive} />
         <PreviewPanel {draft} {payload} Preview={module.Preview} />
       </div>
     </div>

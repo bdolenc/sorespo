@@ -1,23 +1,32 @@
 <script lang="ts">
   import type { ValidationResult } from '$lib/core/validation/types';
 
-  export let validation: ValidationResult = {
-    ok: true,
-    errors: {}
-  };
+export let validation: ValidationResult = {
+  ok: true,
+  errors: {}
+};
+export let active = true;
 </script>
 
 <section class="validation-panel card">
   <div class="card-header">
     <h4 style="margin:0; font-size:14px; font-weight:600;">Validation</h4>
-    <span class:success={validation.ok} class:danger={!validation.ok} class="pill" style="margin-left:auto;">
+    <span class:success={active && validation.ok} class:danger={active && !validation.ok} class="pill" style="margin-left:auto;">
       <span class="dot"></span>
-      {validation.ok ? 'Ready' : `${Object.keys(validation.errors).length} issue${Object.keys(validation.errors).length === 1 ? '' : 's'}`}
+      {#if !active}
+        Awaiting input
+      {:else if validation.ok}
+        Ready
+      {:else}
+        {Object.keys(validation.errors).length} issue{Object.keys(validation.errors).length === 1 ? '' : 's'}
+      {/if}
     </span>
   </div>
 
   <div class="card-body">
-    {#if validation.ok}
+    {#if !active}
+      <p class="validation-panel__empty">Validation messages appear after you leave a field.</p>
+    {:else if validation.ok}
       <p class="validation-panel__empty">No blocking validation errors.</p>
     {:else}
       <ul class="validation-panel__list">

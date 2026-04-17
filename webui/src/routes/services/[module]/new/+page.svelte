@@ -25,6 +25,8 @@
   let validation = serviceModule.validate(draft);
   let dirty = false;
   let saving = false;
+  let validationActive = false;
+  let validationKey = 0;
   let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
 
   const unsubscribeDraft = store.draft.subscribe((value) => {
@@ -69,7 +71,11 @@
       await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
       store.markSaved();
 
-      await goto(`/services/${serviceModule.id}/${encodeURIComponent(key)}`, {
+      const destination = serviceModule.list
+        ? `/services/${serviceModule.id}`
+        : `/services/${serviceModule.id}/${encodeURIComponent(key)}`;
+
+      await goto(destination, {
         invalidateAll: true
       });
     } catch (saveError) {
@@ -81,6 +87,13 @@
       saving = false;
     }
   }
+
+  function handleReset(): void {
+    validationActive = false;
+    validationKey += 1;
+    statusMessage = null;
+    store.reset();
+  }
 </script>
 
 <ServiceWorkspace
@@ -91,9 +104,12 @@
   {validation}
   {dirty}
   {saving}
+  {validationActive}
+  {validationKey}
   saveDisabled={!validation.ok || !getKey()}
   {statusMessage}
   on:change={(event) => store.set(event.detail)}
-  on:reset={() => store.reset()}
+  on:touch={() => (validationActive = true)}
+  on:reset={handleReset}
   on:save={handleSave}
 />

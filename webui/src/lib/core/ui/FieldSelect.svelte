@@ -14,8 +14,20 @@
   export let yangType = '';
   export let required = false;
   export let disabled = false;
+  export let validationKey = 0;
 
-  const dispatch = createEventDispatcher<{ change: string }>();
+  const dispatch = createEventDispatcher<{ change: string; touch: void }>();
+
+  let touched = false;
+  let lastValidationKey = validationKey;
+
+  $: if (validationKey !== lastValidationKey) {
+    touched = false;
+    lastValidationKey = validationKey;
+  }
+
+  $: visibleError = touched ? error : '';
+  $: metaText = visibleError || help || '\u00A0';
 </script>
 
 <label class="field">
@@ -29,21 +41,21 @@
     {/if}
   </span>
   <select
-    class:has-error={!!error}
+    class:has-error={!!visibleError}
+    aria-invalid={visibleError ? 'true' : undefined}
     {value}
     {disabled}
     on:change={(event) => dispatch('change', (event.currentTarget as HTMLSelectElement).value)}
+    on:blur={() => {
+      touched = true;
+      dispatch('touch');
+    }}
   >
     {#each options as option}
       <option value={option.value}>{option.label}</option>
     {/each}
   </select>
-  {#if help}
-    <small class="field__help">{help}</small>
-  {/if}
-  {#if error}
-    <span class="field__error">{error}</span>
-  {/if}
+  <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>
 </label>
 
 <style>
@@ -110,13 +122,13 @@
     cursor: not-allowed;
   }
 
-  .field__help {
+  .field__meta {
+    min-height: 1rem;
     font-size: 11px;
     color: var(--sw-text-muted);
   }
 
-  .field__error {
-    font-size: 11px;
+  .field__meta--error {
     color: var(--sw-danger);
   }
 </style>

@@ -10,8 +10,20 @@
   export let required = false;
   export let disabled = false;
   export let mono = false;
+  export let validationKey = 0;
 
-  const dispatch = createEventDispatcher<{ change: string }>();
+  const dispatch = createEventDispatcher<{ change: string; touch: void }>();
+
+  let touched = false;
+  let lastValidationKey = validationKey;
+
+  $: if (validationKey !== lastValidationKey) {
+    touched = false;
+    lastValidationKey = validationKey;
+  }
+
+  $: visibleError = touched ? error : '';
+  $: metaText = visibleError || help || '\u00A0';
 </script>
 
 <label class="field">
@@ -27,18 +39,18 @@
   <input
     type="text"
     class:mono
-    class:has-error={!!error}
+    class:has-error={!!visibleError}
+    aria-invalid={visibleError ? 'true' : undefined}
     {value}
     {placeholder}
     {disabled}
     on:input={(event) => dispatch('change', (event.currentTarget as HTMLInputElement).value)}
+    on:blur={() => {
+      touched = true;
+      dispatch('touch');
+    }}
   />
-  {#if help}
-    <small class="field__help">{help}</small>
-  {/if}
-  {#if error}
-    <span class="field__error">{error}</span>
-  {/if}
+  <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>
 </label>
 
 <style>
@@ -109,16 +121,13 @@
     cursor: not-allowed;
   }
 
-  .field__help {
+  .field__meta {
+    min-height: 1rem;
     font-size: 11px;
     color: var(--sw-text-muted);
   }
 
-  .field__error {
-    font-size: 11px;
+  .field__meta--error {
     color: var(--sw-danger);
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
 </style>

@@ -10,8 +10,9 @@
 
   export let draft: NetinfraRouterDraft;
   export let errors: Record<string, string> = {};
+  export let validationKey = 0;
 
-  const dispatch = createEventDispatcher<{ change: NetinfraRouterDraft }>();
+  const dispatch = createEventDispatcher<{ change: NetinfraRouterDraft; touch: void }>();
 
   function emit(next: NetinfraRouterDraft): void {
     dispatch('change', next);
@@ -37,39 +38,47 @@
         required={true}
         value={draft.name}
         error={errors.name}
+        {validationKey}
         placeholder="e.g., pe-ams-01"
         yangType="string (key)"
         mono={true}
         on:change={(event) => patch({ name: event.detail })}
+        on:touch={() => dispatch('touch')}
       />
       <FieldNumber
         label="Router ID"
         required={true}
         value={draft.id}
         error={errors.id}
+        {validationKey}
         min={1}
         max={4294967295}
         yangType="uint32"
         on:change={(event) => patch({ id: event.detail })}
+        on:touch={() => dispatch('touch')}
       />
       <FieldText
         label="Platform type"
         required={true}
         value={draft.type}
         error={errors.type}
+        {validationKey}
         placeholder="e.g., SR Linux, cRPD, Arista EOS"
         yangType="string"
         on:change={(event) => patch({ type: event.detail })}
+        on:touch={() => dispatch('touch')}
       />
       <FieldNumber
         label="ASN"
         required={true}
         value={draft.asn}
         error={errors.asn}
+        {validationKey}
         min={1}
         max={4294967295}
         yangType="inet:as-number"
         on:change={(event) => patch({ asn: event.detail })}
+        on:touch={() => dispatch('touch')}
       />
     </div>
   </Section>
@@ -80,10 +89,12 @@
         label="Role"
         value={draft.role}
         error={errors.role}
+        {validationKey}
         placeholder="e.g., PE, P, RR"
         yangType="string"
         help="Optional role metadata used by the service model."
         on:change={(event) => patch({ role: event.detail })}
+        on:touch={() => dispatch('touch')}
       />
 
       <div class="editor__toggles">
