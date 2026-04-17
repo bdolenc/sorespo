@@ -32,7 +32,5 @@ export function serializeNetinfraRouterDraft(draft: NetinfraRouterDraft): unknow
     };
   }
 
-  return {
-    'netinfra:router': [router]
-  };
+  return router;
 }

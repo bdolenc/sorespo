@@ -4,6 +4,15 @@ function canHaveBody(method: string): boolean {
   return method !== 'GET' && method !== 'HEAD';
 }
 
+async function readProxyBody(request: Request): Promise<ArrayBuffer | undefined> {
+  if (!canHaveBody(request.method)) {
+    return undefined;
+  }
+
+  const body = await request.arrayBuffer();
+  return body.byteLength > 0 ? body : undefined;
+}
+
 export function getApiOrigin(): string {
   return process.env.ORCHESTRON_API_ORIGIN ?? DEFAULT_API_ORIGIN;
 }
@@ -17,20 +26,31 @@ export async function proxyRequest(request: Request, targetPath: string, search 
   headers.delete('content-length');
   headers.delete('host');
 
-  const upstream = await fetch(targetUrl, {
-    method: request.method,
-    headers,
-    body: canHaveBody(request.method) ? request.body : undefined,
-    redirect: 'manual'
-  });
+  try {
+    const upstream = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body: await readProxyBody(request),
+      redirect: 'manual'
+    });
 
-  const responseHeaders = new Headers(upstream.headers);
-  responseHeaders.delete('connection');
-  responseHeaders.delete('content-length');
+    const responseHeaders = new Headers(upstream.headers);
+    responseHeaders.delete('connection');
+    responseHeaders.delete('content-length');
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    statusText: upstream.statusText,
-    headers: responseHeaders
-  });
+    return new Response(upstream.body, {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: responseHeaders
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        message: error instanceof Error ? error.message : 'Failed to reach upstream API'
+      },
+      {
+        status: 502
+      }
+    );
+  }
 }
