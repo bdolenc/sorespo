@@ -33,38 +33,96 @@
       }
     };
   });
+
+  /** Derive a YANG-path breadcrumb from the current route */
+  function getYangSegments(pathname: string): { label: string; current: boolean }[] {
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length === 0) return [{ label: 'dashboard', current: true }];
+
+    return parts.map((p, i) => ({
+      label: p,
+      current: i === parts.length - 1
+    }));
+  }
+
+  $: yangSegments = getYangSegments(page.url.pathname);
 </script>
 
 <svelte:head>
-  <title>Orchestron Web UI</title>
+  <title>StratoWeave</title>
 </svelte:head>
 
 <div class="app-shell">
-  <header class="site-nav">
-    <div class="site-nav__inner">
-      <div class="site-nav__brand">
-        <div>
-          <h1 class="site-nav__title">Orchestron</h1>
-        </div>
-        <nav class="site-nav__links" aria-label="Primary navigation">
-          <a class:active={page.url.pathname.startsWith('/devices')} class="site-link" href="/devices">Devices</a>
-          <a class:active={page.url.pathname.startsWith('/operations/config-queue')} class="site-link" href="/operations/config-queue">
-            Config Queue
-            {#if totalPendingCount > 0}
-              <span class="notification-badge">{totalPendingCount}</span>
-            {/if}
-          </a>
-          <a class:active={page.url.pathname.startsWith('/services')} class="site-link" href="/services">Services</a>
-        </nav>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">SW</div>
+      <span class="logo-text">StratoWeave</span>
+      <span class="logo-version">v0.9</span>
+    </div>
+    <nav class="sidebar-nav" aria-label="Primary navigation">
+      <div class="nav-section">
+        <div class="nav-section-label">Network Infra</div>
+        <a
+          class="nav-item"
+          class:active={page.url.pathname.startsWith('/devices')}
+          href="/devices"
+        >
+          <span class="nav-icon">⬡</span>
+          Devices
+        </a>
       </div>
 
-      <button class="toolbar-button" type="button" on:click={handleRefresh}>
-        Refresh current view
-      </button>
-    </div>
-  </header>
+      <div class="nav-section">
+        <div class="nav-section-label">Operations</div>
+        <a
+          class="nav-item"
+          class:active={page.url.pathname.startsWith('/operations/config-queue')}
+          href="/operations/config-queue"
+        >
+          <span class="nav-icon">◇</span>
+          Config Queue
+          {#if totalPendingCount > 0}
+            <span class="nav-badge">{totalPendingCount}</span>
+          {/if}
+        </a>
+      </div>
 
-  <main class="app-main">
-    <slot />
-  </main>
+      <div class="nav-section">
+        <div class="nav-section-label">Services</div>
+        <a
+          class="nav-item"
+          class:active={page.url.pathname.startsWith('/services')}
+          href="/services"
+        >
+          <span class="nav-icon">◈</span>
+          Service Modules
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main area -->
+  <div class="app-main-wrap">
+    <header class="app-header">
+      <div class="yang-path">
+        {#each yangSegments as seg, i}
+          {#if i > 0}
+            <span class="separator">/</span>
+          {/if}
+          <span class="segment" class:current={seg.current}>{seg.label}</span>
+        {/each}
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" type="button" on:click={handleRefresh}>
+          ⟳ Refresh
+        </button>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <slot />
+    </main>
+  </div>
 </div>

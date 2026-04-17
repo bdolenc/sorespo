@@ -30,14 +30,16 @@
 </script>
 
 <div class="editor">
-  <Section title="Identity" description="Core YANG list keys and platform selection for the router entry.">
-    <div class="editor__grid editor__grid--compact">
+  <Section title="Identity" description="Core YANG list keys and platform selection." yangPath="netinfra:router">
+    <div class="editor__grid editor__grid--2col">
       <FieldText
         label="Router name"
         required={true}
         value={draft.name}
         error={errors.name}
-        placeholder="AMS-CORE-1"
+        placeholder="e.g., pe-ams-01"
+        yangType="string (key)"
+        mono={true}
         on:change={(event) => patch({ name: event.detail })}
       />
       <FieldNumber
@@ -46,6 +48,8 @@
         value={draft.id}
         error={errors.id}
         min={1}
+        max={4294967295}
+        yangType="uint32"
         on:change={(event) => patch({ id: event.detail })}
       />
       <FieldText
@@ -53,7 +57,8 @@
         required={true}
         value={draft.type}
         error={errors.type}
-        placeholder="CiscoIosXr_25_3_1"
+        placeholder="e.g., SR Linux, cRPD, Arista EOS"
+        yangType="string"
         on:change={(event) => patch({ type: event.detail })}
       />
       <FieldNumber
@@ -62,18 +67,21 @@
         value={draft.asn}
         error={errors.asn}
         min={1}
+        max={4294967295}
+        yangType="inet:as-number"
         on:change={(event) => patch({ asn: event.detail })}
       />
     </div>
   </Section>
 
-  <Section title="Operational behavior" description="Optional metadata and behavior flags from the netinfra model.">
+  <Section title="Operational behavior" description="Optional metadata and behavior flags." yangPath="netinfra:router/*">
     <div class="editor__grid">
       <FieldText
         label="Role"
         value={draft.role}
         error={errors.role}
-        placeholder="edge"
+        placeholder="e.g., PE, P, RR"
+        yangType="string"
         help="Optional role metadata used by the service model."
         on:change={(event) => patch({ role: event.detail })}
       />
@@ -110,29 +118,29 @@
 <style>
   .editor {
     display: grid;
-    gap: 1.25rem;
+    gap: 20px;
   }
 
   .editor__grid {
     display: grid;
-    gap: 1rem;
+    gap: 16px;
   }
 
-  .editor__grid--compact {
+  .editor__grid--2col {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .editor__toggles {
     display: grid;
-    gap: 0.85rem;
-    padding: 1rem;
-    border-radius: 1rem;
-    background: var(--surface-alt);
-    border: 1px solid var(--border);
+    gap: 12px;
+    padding: 16px;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-elevated);
+    border: 1px solid var(--sw-border-subtle);
   }
 
   @media (max-width: 720px) {
-    .editor__grid--compact {
+    .editor__grid--2col {
       grid-template-columns: 1fr;
     }
   }

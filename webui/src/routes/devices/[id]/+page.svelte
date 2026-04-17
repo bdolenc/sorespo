@@ -458,9 +458,10 @@
     margin: 0;
     padding: 1rem;
     overflow: auto;
-    border-radius: 1rem;
-    background: #0f2335;
-    color: #dcecf9;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-deep);
+    border: 1px solid var(--sw-border-subtle);
+    color: var(--sw-text-secondary);
   }
 
   .module-table-wrap {
