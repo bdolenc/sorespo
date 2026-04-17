@@ -12,8 +12,21 @@
   export let yangType = '';
   export let required = false;
   export let disabled = false;
+  export let validationKey = 0;
 
-  const dispatch = createEventDispatcher<{ change: number | null }>();
+  const dispatch = createEventDispatcher<{ change: number | null; touch: void }>();
+
+  let touched = false;
+  let lastValidationKey = validationKey;
+
+  $: if (validationKey !== lastValidationKey) {
+    touched = false;
+    lastValidationKey = validationKey;
+  }
+
+  $: visibleError = touched ? error : '';
+  $: defaultHelp = help || (min !== undefined && max !== undefined ? `Range: ${min} — ${max.toLocaleString()}` : '');
+  $: metaText = visibleError || defaultHelp || '\u00A0';
 </script>
 
 <label class="field">
@@ -28,7 +41,8 @@
   </span>
   <input
     type="number"
-    class:has-error={!!error}
+    class:has-error={!!visibleError}
+    aria-invalid={visibleError ? 'true' : undefined}
     value={value ?? ''}
     {min}
     {max}
@@ -39,15 +53,12 @@
       const next = (event.currentTarget as HTMLInputElement).value;
       dispatch('change', next === '' ? null : Number(next));
     }}
+    on:blur={() => {
+      touched = true;
+      dispatch('touch');
+    }}
   />
-  {#if help}
-    <small class="field__help">{help}</small>
-  {:else if min !== undefined && max !== undefined}
-    <small class="field__help">Range: {min} — {max.toLocaleString()}</small>
-  {/if}
-  {#if error}
-    <span class="field__error">{error}</span>
-  {/if}
+  <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>
 </label>
 
 <style>
@@ -114,13 +125,13 @@
     cursor: not-allowed;
   }
 
-  .field__help {
+  .field__meta {
+    min-height: 1rem;
     font-size: 11px;
     color: var(--sw-text-muted);
   }
 
-  .field__error {
-    font-size: 11px;
+  .field__meta--error {
     color: var(--sw-danger);
   }
 </style>

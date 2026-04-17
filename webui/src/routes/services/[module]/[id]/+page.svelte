@@ -26,6 +26,8 @@
   let dirty = false;
   let saving = false;
   let loading = true;
+  let validationActive = false;
+  let validationKey = 0;
   let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
   let lastLoadedKey = '';
 
@@ -70,6 +72,8 @@
       statusMessage = null;
       const response = await restconfGetJson(getListEntryPath(serviceModule.restconfRoot, data.serviceId));
       store.replace(serviceModule.parse(response));
+      validationActive = false;
+      validationKey += 1;
     } catch (loadError) {
       statusMessage = {
         type: 'error',
@@ -115,6 +119,13 @@
       saving = false;
     }
   }
+
+  function handleReset(): void {
+    validationActive = false;
+    validationKey += 1;
+    statusMessage = null;
+    store.reset();
+  }
 </script>
 
 <div class="page-header">
@@ -138,10 +149,13 @@
   {dirty}
   {saving}
   {loading}
+  {validationActive}
+  {validationKey}
   saveDisabled={!validation.ok || !getKey()}
   {statusMessage}
   on:change={(event) => store.set(event.detail)}
-  on:reset={() => store.reset()}
+  on:touch={() => (validationActive = true)}
+  on:reset={handleReset}
   on:save={handleSave}
 />
 
