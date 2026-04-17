@@ -2,7 +2,7 @@
   import '../app.css';
 
   import { invalidateAll } from '$app/navigation';
-  import { page } from '$app/state';
+  import { page } from '$app/stores';
   import { onMount } from 'svelte';
 
   import { fetchAllDeviceQueues } from '$lib/core/orchestron/client';
@@ -45,7 +45,8 @@
     }));
   }
 
-  $: yangSegments = getYangSegments(page.url.pathname);
+  $: currentPathname = $page.url.pathname;
+  $: yangSegments = getYangSegments(currentPathname);
 </script>
 
 <svelte:head>
@@ -65,7 +66,7 @@
         <div class="nav-section-label">Network Infra</div>
         <a
           class="nav-item"
-          class:active={page.url.pathname.startsWith('/devices')}
+          class:active={currentPathname.startsWith('/devices')}
           href="/devices"
         >
           <span class="nav-icon">⬡</span>
@@ -77,7 +78,7 @@
         <div class="nav-section-label">Operations</div>
         <a
           class="nav-item"
-          class:active={page.url.pathname.startsWith('/operations/config-queue')}
+          class:active={currentPathname.startsWith('/operations/config-queue')}
           href="/operations/config-queue"
         >
           <span class="nav-icon">◇</span>
@@ -92,7 +93,7 @@
         <div class="nav-section-label">Services</div>
         <a
           class="nav-item"
-          class:active={page.url.pathname.startsWith('/services')}
+          class:active={currentPathname.startsWith('/services')}
           href="/services"
         >
           <span class="nav-icon">◈</span>
