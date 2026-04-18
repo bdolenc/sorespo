@@ -170,14 +170,6 @@
     }))
   ];
 
-  $: deviceLocationOptions = [
-    { value: '', label: 'Select location' },
-    ...draft.locations.map((location) => ({
-      value: location.locationId,
-      label: location.locationId || 'Unnamed location'
-    }))
-  ];
-
   $: deviceManagementAddressFamilyOptions = [
     { value: '', label: 'No management address' },
     ...L3VPN_SITE_ADDRESS_FAMILY_OPTIONS
@@ -228,8 +220,7 @@
       items={draft.locations}
       addLabel="Add location"
       emptyLabel="No locations configured."
-      getItemLabel={(item, index) =>
-        (item as L3VpnSiteLocationDraft).locationId || `Location ${index + 1}`}
+      getItemLabel={(item, index) => item.locationId || `Location ${index + 1}`}
       on:add={() => patch({ locations: [...draft.locations, createL3VpnSiteLocationDraft()] })}
       on:remove={(event) => patch({ locations: removeAt(draft.locations, event.detail) })}
     >
@@ -316,8 +307,7 @@
         items={draft.devices}
         addLabel="Add device"
         emptyLabel="No devices configured."
-        getItemLabel={(item, index) =>
-          (item as L3VpnSiteDeviceDraft).deviceId || `Device ${index + 1}`}
+        getItemLabel={(item, index) => item.deviceId || `Device ${index + 1}`}
         on:add={() => patch({ devices: [...draft.devices, createL3VpnSiteDeviceDraft()] })}
         on:remove={(event) => patch({ devices: removeAt(draft.devices, event.detail) })}
       >
@@ -339,7 +329,7 @@
               label="Location"
               required={true}
               value={item.location}
-              options={deviceLocationOptions}
+              options={locationReferenceOptions}
               error={errorFor(`devices.${index}.location`)}
               {validationKey}
               yangType="leafref"
@@ -393,8 +383,7 @@
       items={draft.accesses}
       addLabel="Add access"
       emptyLabel="No accesses configured."
-      getItemLabel={(item, index) =>
-        (item as L3VpnSiteAccessDraft).siteNetworkAccessId || `Access ${index + 1}`}
+      getItemLabel={(item, index) => item.siteNetworkAccessId || `Access ${index + 1}`}
       on:add={() => patch({ accesses: [...draft.accesses, createL3VpnSiteAccessDraft()] })}
       on:remove={(event) => patch({ accesses: removeAt(draft.accesses, event.detail) })}
     >
@@ -576,7 +565,7 @@
               addLabel="Add protocol"
               emptyLabel="No routing protocols configured."
               getItemLabel={(protocol, protocolIndex) =>
-                formatL3VpnSiteRoutingProtocolType((protocol as L3VpnSiteRoutingProtocolDraft).type) || `Protocol ${protocolIndex + 1}`}
+                formatL3VpnSiteRoutingProtocolType(protocol.type) || `Protocol ${protocolIndex + 1}`}
               on:add={() =>
                 updateAccess(index, {
                   routingProtocols: [...item.routingProtocols, createL3VpnSiteRoutingProtocolDraft()]
@@ -694,8 +683,7 @@
                         items={protocol.staticIpv4LanPrefixes}
                         addLabel="Add IPv4 prefix"
                         emptyLabel="No IPv4 LAN prefixes configured."
-                        getItemLabel={(prefix, prefixIndex) =>
-                          (prefix as L3VpnSiteLanPrefixDraft).lan || `IPv4 prefix ${prefixIndex + 1}`}
+                        getItemLabel={(prefix, prefixIndex) => prefix.lan || `IPv4 prefix ${prefixIndex + 1}`}
                         on:add={() =>
                           updateRoutingProtocol(index, protocolIndex, {
                             staticIpv4LanPrefixes: [...protocol.staticIpv4LanPrefixes, createL3VpnSiteLanPrefixDraft()]
@@ -765,8 +753,7 @@
                         items={protocol.staticIpv6LanPrefixes}
                         addLabel="Add IPv6 prefix"
                         emptyLabel="No IPv6 LAN prefixes configured."
-                        getItemLabel={(prefix, prefixIndex) =>
-                          (prefix as L3VpnSiteLanPrefixDraft).lan || `IPv6 prefix ${prefixIndex + 1}`}
+                        getItemLabel={(prefix, prefixIndex) => prefix.lan || `IPv6 prefix ${prefixIndex + 1}`}
                         on:add={() =>
                           updateRoutingProtocol(index, protocolIndex, {
                             staticIpv6LanPrefixes: [...protocol.staticIpv6LanPrefixes, createL3VpnSiteLanPrefixDraft()]

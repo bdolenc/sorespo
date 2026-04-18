@@ -4,6 +4,7 @@
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
+  import { getDraftKey } from '$lib/core/registry/types';
   import { getListEntryPath, restconfPutJson } from '$lib/core/restconf/client';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
@@ -76,13 +77,8 @@
     statusMessage = null;
   }
 
-  function getKey(): string {
-    const value = (draft as Record<string, unknown>)[serviceModule.keyParam];
-    return typeof value === 'string' ? value.trim() : value !== null && value !== undefined ? String(value) : '';
-  }
-
   async function handleSave(): Promise<void> {
-    const key = getKey();
+    const key = getDraftKey(serviceModule, draft);
 
     if (!key) {
       statusMessage = {
@@ -96,9 +92,10 @@
       saving = true;
       statusMessage = null;
 
-      const payload = serviceModule.serialize(draft);
+      const snapshot = draft;
+      const payload = serviceModule.serialize(snapshot);
       await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
-      store.markSaved();
+      store.markSaved(snapshot);
 
       const destination = serviceModule.list
         ? `/services/${serviceModule.id}`
@@ -136,7 +133,7 @@
     {saving}
     {validationActive}
     {validationKey}
-    saveDisabled={!validation.ok || !getKey()}
+    saveDisabled={!validation.ok || !getDraftKey(serviceModule, draft)}
     {statusMessage}
     on:change={(event) => store.set(event.detail)}
     on:touch={() => (validationActive = true)}

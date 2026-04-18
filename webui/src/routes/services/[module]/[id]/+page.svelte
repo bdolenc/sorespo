@@ -5,6 +5,7 @@
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
+  import { getDraftKey } from '$lib/core/registry/types';
   import { getListEntryPath, restconfDelete, restconfGetJson, restconfPutJson } from '$lib/core/restconf/client';
   import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
@@ -95,6 +96,7 @@
   }
 
   async function loadDraft(silent = false): Promise<void> {
+    const requestKey = routeKey;
     try {
       if (!silent) {
         loading = true;
@@ -102,26 +104,25 @@
 
       statusMessage = null;
       const response = await restconfGetJson(getListEntryPath(serviceModule.restconfRoot, data.serviceId));
+      if (requestKey !== routeKey) return;
       store.replace(serviceModule.parse(response));
       validationActive = false;
       validationKey += 1;
     } catch (loadError) {
+      if (requestKey !== routeKey) return;
       statusMessage = {
         type: 'error',
         text: loadError instanceof Error ? loadError.message : 'Failed to load service draft.'
       };
     } finally {
-      loading = false;
+      if (requestKey === routeKey) {
+        loading = false;
+      }
     }
   }
 
-  function getKey(): string {
-    const value = (draft as Record<string, unknown>)[serviceModule.keyParam];
-    return typeof value === 'string' ? value.trim() : value !== null && value !== undefined ? String(value) : '';
-  }
-
   async function handleSave(): Promise<void> {
-    const key = getKey();
+    const key = getDraftKey(serviceModule, draft);
 
     if (!key) {
       statusMessage = {
@@ -134,9 +135,10 @@
     try {
       saving = true;
       statusMessage = null;
-      const payload = serviceModule.serialize(draft);
+      const snapshot = draft;
+      const payload = serviceModule.serialize(snapshot);
       await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
-      store.markSaved();
+      store.markSaved(snapshot);
       statusMessage = {
         type: 'success',
         text: `Saved ${key} successfully.`
@@ -210,7 +212,7 @@
   {loading}
   {validationActive}
   {validationKey}
-  saveDisabled={!validation.ok || !getKey()}
+  saveDisabled={!validation.ok || !getDraftKey(serviceModule, draft)}
   showDelete={serviceModule.deletable ?? false}
   deleteDisabled={loading}
   {statusMessage}

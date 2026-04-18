@@ -3,39 +3,18 @@
 
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
 
+  import { queuesPoll, refreshQueues } from '$lib/core/orchestron/poll-store';
   import { listServiceModuleMeta } from '$lib/core/registry/service-modules';
-  import { fetchAllDeviceQueues } from '$lib/core/orchestron/client';
 
   const serviceModules = listServiceModuleMeta();
 
-  let totalPendingCount = 0;
-  let pollHandle: ReturnType<typeof setInterval> | null = null;
-
-  async function refreshPendingCount(): Promise<void> {
-    try {
-      totalPendingCount = (await fetchAllDeviceQueues()).length;
-    } catch (error) {
-      console.error('Failed to fetch queue counts:', error);
-    }
-  }
+  $: totalPendingCount = $queuesPoll.queues.length;
 
   async function handleRefresh(): Promise<void> {
     window.dispatchEvent(new CustomEvent('global-refresh'));
-    await Promise.all([refreshPendingCount(), invalidateAll()]);
+    await Promise.all([refreshQueues(), invalidateAll()]);
   }
-
-  onMount(() => {
-    refreshPendingCount();
-    pollHandle = setInterval(refreshPendingCount, 1000);
-
-    return () => {
-      if (pollHandle) {
-        clearInterval(pollHandle);
-      }
-    };
-  });
 
   /** Derive a YANG-path breadcrumb from the current route */
   function getYangSegments(pathname: string): { label: string; current: boolean }[] {
@@ -50,10 +29,16 @@
 
   $: currentPathname = $page.url.pathname;
   $: yangSegments = getYangSegments(currentPathname);
+  $: pageTitle = yangSegments
+    .slice()
+    .reverse()
+    .map((seg) => seg.label)
+    .concat('StratoWeave')
+    .join(' · ');
 </script>
 
 <svelte:head>
-  <title>StratoWeave</title>
+  <title>{pageTitle}</title>
 </svelte:head>
 
 <div class="app-shell">

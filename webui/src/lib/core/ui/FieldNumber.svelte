@@ -25,7 +25,7 @@
   }
 
   $: visibleError = touched ? error : '';
-  $: defaultHelp = help || (min !== undefined && max !== undefined ? `Range: ${min} — ${max.toLocaleString()}` : '');
+  $: defaultHelp = help || (min !== undefined && max !== undefined ? `Range: ${min} — ${max}` : '');
   $: metaText = visibleError || defaultHelp || '\u00A0';
 </script>
 
@@ -51,7 +51,12 @@
     {disabled}
     on:input={(event) => {
       const next = (event.currentTarget as HTMLInputElement).value;
-      dispatch('change', next === '' ? null : Number(next));
+      if (next === '') {
+        dispatch('change', null);
+        return;
+      }
+      const parsed = Number(next);
+      dispatch('change', Number.isFinite(parsed) ? parsed : null);
     }}
     on:blur={() => {
       touched = true;
