@@ -123,7 +123,7 @@ export async function proxyRequest(request: Request, targetPath: string, search 
         method: request.method,
         headers,
         body,
-        redirect: 'manual'
+        redirect: 'follow'
       });
 
       const responseHeaders = new Headers(upstream.headers);

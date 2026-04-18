@@ -49,25 +49,32 @@
   });
 
   async function loadDevice(): Promise<void> {
+    const requestId = data.deviceId;
     try {
       loading = true;
       error = '';
-      device = await fetchDevice(deviceId);
-      await loadLog();
+      const info = await fetchDevice(requestId);
+      if (requestId !== data.deviceId) return;
+      device = info;
+      await loadLog(false, requestId);
     } catch (loadError) {
+      if (requestId !== data.deviceId) return;
       error = loadError instanceof Error ? loadError.message : 'Failed to load device.';
     } finally {
-      loading = false;
+      if (requestId === data.deviceId) {
+        loading = false;
+      }
     }
   }
 
-  async function loadLog(silent = false): Promise<void> {
+  async function loadLog(silent = false, requestId = data.deviceId): Promise<void> {
     try {
       if (!silent) {
         loadingLog = true;
       }
 
-      const response = await fetchDeviceConfigLog(deviceId, configFormat);
+      const response = await fetchDeviceConfigLog(requestId, configFormat);
+      if (requestId !== data.deviceId) return;
       const nextLog = response.log || [];
       const previousTimestamp = selectedEntry?.timestamp;
 
@@ -87,12 +94,13 @@
         selectEntry(0);
       }
     } catch (loadError) {
+      if (requestId !== data.deviceId) return;
       if (!silent) {
         console.error('Failed to load config log:', loadError);
         configLog = [];
       }
     } finally {
-      if (!silent) {
+      if (!silent && requestId === data.deviceId) {
         loadingLog = false;
       }
     }

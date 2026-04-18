@@ -1,6 +1,6 @@
 import { derived, get, writable } from 'svelte/store';
 
-import type { Readable, Writable } from 'svelte/store';
+import type { Readable } from 'svelte/store';
 
 import type { ValidationResult } from '$lib/core/validation/types';
 
@@ -13,15 +13,15 @@ function cloneDraft<T>(value: T): T {
 }
 
 export interface DraftStore<TDraft> {
-  draft: Writable<TDraft>;
-  original: Writable<TDraft>;
-  validation: Writable<ValidationResult>;
+  draft: Readable<TDraft>;
+  original: Readable<TDraft>;
+  validation: Readable<ValidationResult>;
   dirty: Readable<boolean>;
   reset(): void;
   replace(next: TDraft): void;
   set(next: TDraft): void;
   update(updater: (current: TDraft) => TDraft): void;
-  markSaved(): void;
+  markSaved(snapshot?: TDraft): void;
 }
 
 export function createDraftStore<TDraft>(
@@ -68,8 +68,8 @@ export function createDraftStore<TDraft>(
     });
   }
 
-  function markSaved(): void {
-    original.set(cloneDraft(get(draft)));
+  function markSaved(snapshot?: TDraft): void {
+    original.set(cloneDraft(snapshot ?? get(draft)));
   }
 
   return {

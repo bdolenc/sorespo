@@ -3,11 +3,11 @@
 
   import {
     approveConfigQueueItem,
-    fetchAllDeviceQueues,
     fetchConfigQueueItem,
     type QueueItemDetail,
     type QueueItemSummary
   } from '$lib/core/orchestron/client';
+  import { queuesPoll, refreshQueues, type QueuesPollValue } from '$lib/core/orchestron/poll-store';
 
   let allQueues: QueueItemSummary[] = [];
   let loading = true;
@@ -16,7 +16,6 @@
   let selectedQueueIndex = 0;
   let itemDetail: QueueItemDetail | null = null;
   let approvingItem: string | null = null;
-  let refreshInterval: ReturnType<typeof setInterval> | null = null;
   let diffFormat = 'xml';
 
   $: pendingCount = allQueues.filter((item) => item.approved !== true && item.approved !== false).length;
@@ -35,68 +34,52 @@
       : null;
 
   onMount(() => {
-    loadAllQueues();
+    const unsubscribePoll = queuesPoll.subscribe((value) => {
+      if (!value.loaded && !value.error) return;
+      applyPoll(value);
+    });
 
-    const handleRefresh = () => loadAllQueues();
+    const handleRefresh = () => {
+      void refreshQueues();
+    };
     window.addEventListener('global-refresh', handleRefresh);
 
-    refreshInterval = setInterval(() => {
-      loadAllQueues(true);
-    }, 1000);
-
     return () => {
+      unsubscribePoll();
       window.removeEventListener('global-refresh', handleRefresh);
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
     };
   });
 
-  async function loadAllQueues(silent = false): Promise<void> {
-    try {
-      if (!silent && allQueues.length === 0) {
-        loading = true;
-      }
+  function applyPoll(value: QueuesPollValue): void {
+    const previousSelection = selectedItem ? `${selectedItem.deviceId}:${selectedItem.queueId}` : null;
 
-      const nextQueues = await fetchAllDeviceQueues();
-      const previousSelection = selectedItem ? `${selectedItem.deviceId}:${selectedItem.queueId}` : null;
-      const nextDeviceGroups = nextQueues.reduce<Record<string, QueueItemSummary[]>>((groups, item) => {
-        groups[item.deviceId] = [...(groups[item.deviceId] ?? []), item];
-        return groups;
-      }, {});
-      const nextDeviceList = Object.entries(nextDeviceGroups).map(([deviceId, items]) => ({
-        deviceId,
-        items,
-        count: items.filter((item) => item.approved !== true && item.approved !== false).length
-      }));
+    allQueues = value.queues;
+    loading = false;
+    error = value.error ?? '';
 
-      allQueues = nextQueues;
-      loading = false;
-      error = '';
+    if (value.queues.length === 0) {
+      selectedDevice = null;
+      selectedQueueIndex = 0;
+      itemDetail = null;
+      return;
+    }
 
-      if (nextQueues.length === 0) {
-        selectedDevice = null;
-        selectedQueueIndex = 0;
-        itemDetail = null;
+    if (previousSelection) {
+      const [deviceId, queueId] = previousSelection.split(':');
+      const deviceItems = value.queues.filter((item) => item.deviceId === deviceId);
+      const nextIndex = deviceItems.findIndex((item) => item.queueId === queueId);
+      if (nextIndex >= 0) {
+        selectedDevice = deviceId;
+        selectedQueueIndex = nextIndex;
         return;
       }
-
-      if (previousSelection) {
-        const [deviceId, queueId] = previousSelection.split(':');
-        const group = nextDeviceGroups[deviceId] ?? [];
-        const nextIndex = group.findIndex((item) => item.queueId === queueId);
-        if (nextIndex >= 0) {
-          selectedDevice = deviceId;
-          selectedQueueIndex = nextIndex;
-          return;
-        }
-      }
-
-      await selectDevice(nextDeviceList[0].deviceId, 0);
-    } catch (loadError) {
-      loading = false;
-      error = loadError instanceof Error ? loadError.message : 'Failed to load queue.';
     }
+
+    const firstDeviceId = value.queues[0].deviceId;
+    const firstItem = value.queues.find((item) => item.deviceId === firstDeviceId)!;
+    selectedDevice = firstDeviceId;
+    selectedQueueIndex = 0;
+    void loadItemDetail(firstDeviceId, firstItem.queueId);
   }
 
   async function selectDevice(deviceId: string, index = 0): Promise<void> {
@@ -139,7 +122,7 @@
         selectedItem.deviceTxid,
         approved
       );
-      await loadAllQueues();
+      await refreshQueues();
     } catch (decisionError) {
       error = decisionError instanceof Error ? decisionError.message : 'Failed to update queue item.';
     } finally {
@@ -256,6 +239,7 @@
             class="btn btn-danger"
             type="button"
             disabled={selectedQueueIndex !== 0 || approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}`}
+            title={selectedQueueIndex !== 0 ? 'Only the first queued change per device can be approved or rejected.' : undefined}
             on:click={() => handleDecision(false)}
           >
             {approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}` ? 'Updating...' : 'Reject'}
@@ -264,6 +248,7 @@
             class="btn btn-success"
             type="button"
             disabled={selectedQueueIndex !== 0 || approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}`}
+            title={selectedQueueIndex !== 0 ? 'Only the first queued change per device can be approved or rejected.' : undefined}
             on:click={() => handleDecision(true)}
           >
             {approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}` ? 'Updating...' : 'Approve & Apply'}

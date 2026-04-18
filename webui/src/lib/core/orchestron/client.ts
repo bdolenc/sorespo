@@ -82,40 +82,30 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export async function fetchDevices(): Promise<DeviceSummary[]> {
-  try {
-    const response = await apiRequest<{ devices?: string[] }>('/device');
-    return (response.devices ?? []).map((name) => ({
-      id: name,
-      name
-    }));
-  } catch (error) {
-    console.error('Failed to fetch devices:', error);
-    return [];
-  }
+  const response = await apiRequest<{ devices?: string[] }>('/device');
+  return (response.devices ?? []).map((name) => ({
+    id: name,
+    name
+  }));
 }
 
 export async function fetchDevice(deviceId: string): Promise<DeviceInfo> {
   const upperId = deviceId.toUpperCase();
-
-  try {
-    const info = await apiRequest<any>(`/device/${upperId}/info`);
-    return {
-      id: upperId,
-      name: info.name || upperId,
-      type: info.type,
-      approvalRequired: Boolean(info.approval_required),
-      addresses: info.addresses || [],
-      username: info.username,
-      hasRunningConfig: info.has_running_config,
-      hasTargetConfig: info.has_target_config,
-      queueLength: info.queue_length,
-      pendingApprovals: info.pending_approvals,
-      featureFlags: info.feature_flags,
-      modules: info.modules
-    };
-  } catch {
-    throw new Error(`Device ${upperId} not found or offline`);
-  }
+  const info = await apiRequest<any>(`/device/${upperId}/info`);
+  return {
+    id: upperId,
+    name: info.name || upperId,
+    type: info.type,
+    approvalRequired: Boolean(info.approval_required),
+    addresses: info.addresses || [],
+    username: info.username,
+    hasRunningConfig: info.has_running_config,
+    hasTargetConfig: info.has_target_config,
+    queueLength: info.queue_length,
+    pendingApprovals: info.pending_approvals,
+    featureFlags: info.feature_flags,
+    modules: info.modules
+  };
 }
 
 export async function resyncDevice(deviceId: string): Promise<unknown> {
@@ -150,28 +140,23 @@ export async function approveConfigQueueItem(
 }
 
 export async function fetchAllDeviceQueues(): Promise<QueueItemSummary[]> {
-  try {
-    const response = await apiRequest<any>('/config-queue');
-    const items: QueueItemSummary[] = [];
+  const response = await apiRequest<any>('/config-queue');
+  const items: QueueItemSummary[] = [];
 
-    for (const device of response.devices ?? []) {
-      for (const item of device.items ?? []) {
-        items.push({
-          deviceId: device.device_id,
-          queueId: String(item.queue_id),
-          tid: item.tid,
-          deviceTxid: item.device_txid,
-          configDiff: item.config_diff,
-          approved: item.approved
-        });
-      }
+  for (const device of response.devices ?? []) {
+    for (const item of device.items ?? []) {
+      items.push({
+        deviceId: device.device_id,
+        queueId: String(item.queue_id),
+        tid: item.tid,
+        deviceTxid: item.device_txid,
+        configDiff: item.config_diff,
+        approved: item.approved
+      });
     }
-
-    return items;
-  } catch (error) {
-    console.error('Failed to fetch config queues:', error);
-    return [];
   }
+
+  return items;
 }
 
 export async function fetchDeviceRunningConfig(deviceId: string, format = 'json'): Promise<string> {

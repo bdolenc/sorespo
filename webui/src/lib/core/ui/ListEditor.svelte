@@ -1,12 +1,12 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   import { createEventDispatcher } from 'svelte';
 
   export let title = '';
   export let description = '';
-  export let items: any[] = [];
+  export let items: T[] = [];
   export let addLabel = 'Add item';
   export let emptyLabel = 'No items configured yet.';
-  export let getItemLabel: (item: any, index: number) => string = (_item, index) => `Item ${index + 1}`;
+  export let getItemLabel: (item: T, index: number) => string = (_item, index) => `Item ${index + 1}`;
 
   const dispatch = createEventDispatcher<{
     add: void;

@@ -28,32 +28,43 @@
   }
 
   async function loadDevice(): Promise<void> {
+    const requestId = data.deviceId;
     try {
       loading = true;
       error = '';
-      device = await fetchDevice(deviceId);
-      await loadConfigView('running');
+      const info = await fetchDevice(requestId);
+      if (requestId !== data.deviceId) return;
+      device = info;
+      await loadConfigView('running', requestId);
     } catch (loadError) {
+      if (requestId !== data.deviceId) return;
       error = loadError instanceof Error ? loadError.message : 'Failed to load device.';
     } finally {
-      loading = false;
+      if (requestId === data.deviceId) {
+        loading = false;
+      }
     }
   }
 
-  async function loadConfigView(mode: 'running' | 'target'): Promise<void> {
+  async function loadConfigView(mode: 'running' | 'target', requestId = data.deviceId): Promise<void> {
     try {
       loadingConfig = true;
       configViewMode = mode;
       configData = '';
 
       const fetcher = mode === 'running' ? fetchDeviceRunningConfig : fetchDeviceTargetConfig;
-      configData = await fetcher(deviceId, configFormat);
+      const result = await fetcher(requestId, configFormat);
+      if (requestId !== data.deviceId) return;
+      configData = result;
     } catch (loadError) {
+      if (requestId !== data.deviceId) return;
       configData = `# Error loading ${mode} configuration: ${
         loadError instanceof Error ? loadError.message : 'Unknown failure'
       }`;
     } finally {
-      loadingConfig = false;
+      if (requestId === data.deviceId) {
+        loadingConfig = false;
+      }
     }
   }
 

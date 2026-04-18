@@ -44,33 +44,44 @@
   });
 
   async function loadDevice(): Promise<void> {
+    const requestId = data.deviceId;
     try {
       loading = true;
       error = '';
       message = null;
-      device = await fetchDevice(deviceId);
-      await loadConfigQueue();
+      const info = await fetchDevice(requestId);
+      if (requestId !== data.deviceId) return;
+      device = info;
+      await loadConfigQueue(requestId);
     } catch (loadError) {
+      if (requestId !== data.deviceId) return;
       error = loadError instanceof Error ? loadError.message : 'Failed to load device.';
     } finally {
-      loading = false;
+      if (requestId === data.deviceId) {
+        loading = false;
+      }
     }
   }
 
-  async function loadConfigQueue(): Promise<void> {
+  async function loadConfigQueue(requestId = data.deviceId): Promise<void> {
     try {
       loadingQueue = true;
-      configQueue = await fetchDeviceConfigQueue(deviceId);
+      const queue = await fetchDeviceConfigQueue(requestId);
+      if (requestId !== data.deviceId) return;
+      configQueue = queue;
 
       if (selectedQueueItem && !configQueue[selectedQueueItem]) {
         selectedQueueItem = null;
         queueItemDetail = null;
       }
     } catch (loadError) {
+      if (requestId !== data.deviceId) return;
       console.error('Failed to load config queue:', loadError);
       configQueue = {};
     } finally {
-      loadingQueue = false;
+      if (requestId === data.deviceId) {
+        loadingQueue = false;
+      }
     }
   }
 

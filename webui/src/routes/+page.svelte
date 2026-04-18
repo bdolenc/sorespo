@@ -8,6 +8,7 @@
 
   let devices: DeviceSummary[] = [];
   let loadingDevices = true;
+  let loadError = '';
 
   $: totalServices = modules.length;
   $: totalDevices = devices.length;
@@ -15,7 +16,11 @@
   async function loadDevices(): Promise<void> {
     try {
       loadingDevices = true;
+      loadError = '';
       devices = await fetchDevices();
+    } catch (error) {
+      loadError = error instanceof Error ? error.message : 'Failed to load devices.';
+      devices = [];
     } finally {
       loadingDevices = false;
     }
@@ -70,6 +75,8 @@
 
     {#if loadingDevices}
       <div class="loading-state">Loading devices...</div>
+    {:else if loadError}
+      <div class="error-state">{loadError}</div>
     {:else if devices.length === 0}
       <div class="empty-state">No devices were returned by the backend.</div>
     {:else}
