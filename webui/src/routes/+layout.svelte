@@ -20,13 +20,21 @@
     await Promise.all([refreshQueues(), invalidateAll()]);
   }
 
+  function decodePathSegment(value: string): string {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+
   /** Derive a YANG-path breadcrumb from the current route */
   function getYangSegments(pathname: string): { label: string; current: boolean }[] {
     const parts = pathname.split('/').filter(Boolean);
     if (parts.length === 0) return [{ label: 'dashboard', current: true }];
 
     return parts.map((p, i) => ({
-      label: p,
+      label: decodePathSegment(p),
       current: i === parts.length - 1
     }));
   }

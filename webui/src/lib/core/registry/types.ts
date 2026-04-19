@@ -17,6 +17,7 @@ export interface ServiceModule<TDraft = unknown> {
   collectionRestconfRoot?: string;
   restconfRoot: string;
   keyParam: string;
+  keyLabel?: string;
   createDraft(): TDraft;
   parse(input: unknown): TDraft;
   cloneDraft?(draft: TDraft): TDraft;
@@ -24,6 +25,9 @@ export interface ServiceModule<TDraft = unknown> {
   validate(draft: TDraft): ValidationResult;
   serialize(draft: TDraft): unknown;
   getKey?(draft: TDraft): string;
+  getPathKey?(draft: TDraft): string | string[];
+  parseRouteId?(id: string): string | string[];
+  formatRouteId?(id: string): string;
   Editor: Component<{
     draft: TDraft;
     errors: Record<string, string>;
@@ -44,6 +48,30 @@ export function getDraftKey<TDraft>(module: ServiceModule<TDraft>, draft: TDraft
   if (typeof value === 'string') return value.trim();
   if (value === null || value === undefined) return '';
   return String(value);
+}
+
+export function getDraftKeyLabel<TDraft>(module: ServiceModule<TDraft>): string {
+  return module.keyLabel ?? module.keyParam;
+}
+
+export function getDraftPathKey<TDraft>(module: ServiceModule<TDraft>, draft: TDraft): string | string[] {
+  if (module.getPathKey) {
+    return module.getPathKey(draft);
+  }
+
+  return getDraftKey(module, draft);
+}
+
+export function getRoutePathKey<TDraft>(module: ServiceModule<TDraft>, id: string): string | string[] {
+  if (module.parseRouteId) {
+    return module.parseRouteId(id);
+  }
+
+  return id;
+}
+
+export function formatServiceRouteId<TDraft>(module: ServiceModule<TDraft>, id: string): string {
+  return module.formatRouteId ? module.formatRouteId(id) : id;
 }
 
 export type AnyServiceModule = ServiceModule<any>;

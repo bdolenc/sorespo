@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 
 import { getServiceModule } from '$lib/core/registry/service-modules';
+import { getRoutePathKey } from '$lib/core/registry/types';
 import { getListEntryPath, restconfGetJson } from '$lib/core/restconf/client';
 
 import type { PageLoad } from './$types';
@@ -16,7 +17,7 @@ export const load: PageLoad = async ({ params, fetch, depends }) => {
 
   try {
     const response = await restconfGetJson(
-      getListEntryPath(serviceModule.restconfRoot, params.id),
+      getListEntryPath(serviceModule.restconfRoot, getRoutePathKey(serviceModule, params.id)),
       fetch
     );
     return {

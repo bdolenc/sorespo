@@ -4,7 +4,12 @@
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
-  import { getDraftKey } from '$lib/core/registry/types';
+  import {
+    formatServiceRouteId,
+    getDraftKey,
+    getDraftKeyLabel,
+    getDraftPathKey
+  } from '$lib/core/registry/types';
   import { getListEntryPath, restconfPutJson } from '$lib/core/restconf/client';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
@@ -37,7 +42,7 @@
 
   let subtitle = $derived.by(() => {
     if (data.cloneSourceId && !data.cloneError) {
-      return `Cloned from ${data.cloneSourceId}. Update the ${serviceModule.keyParam} field before saving the new instance.`;
+      return `Cloned from ${formatServiceRouteId(serviceModule, data.cloneSourceId)}. Update ${getDraftKeyLabel(serviceModule)} before saving the new instance.`;
     }
 
     return 'Start from an empty draft, validate it locally, and save directly into RESTCONF.';
@@ -111,7 +116,7 @@
     if (!key) {
       statusMessage = {
         type: 'error',
-        text: `The "${serviceModule.keyParam}" field is required before saving.`
+        text: `${getDraftKeyLabel(serviceModule)} is required before saving.`
       };
       return;
     }
@@ -122,7 +127,10 @@
 
       const snapshot = draft;
       const payload = serviceModule.serialize(snapshot);
-      await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
+      await restconfPutJson(
+        getListEntryPath(serviceModule.restconfRoot, getDraftPathKey(serviceModule, snapshot)),
+        payload
+      );
       store.markSaved(snapshot);
 
       await goto(`/services/${serviceModule.id}/${encodeURIComponent(key)}`, {
