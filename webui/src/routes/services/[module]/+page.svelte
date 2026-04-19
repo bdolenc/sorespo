@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
 
   import { getServiceModule } from '$lib/core/registry/service-modules';
+  import { formatServiceRouteId, getRoutePathKey } from '$lib/core/registry/types';
   import { getListEntryPath, restconfDelete } from '$lib/core/restconf/client';
   import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
 
@@ -45,13 +46,16 @@
 
     const item = pendingRemoval;
     pendingRemoval = null;
+    const displayId = formatServiceRouteId(serviceModule, item.id);
 
     try {
       removingId = item.id;
       statusMessage = null;
-      await restconfDelete(getListEntryPath(serviceModule.restconfRoot, item.id));
+      await restconfDelete(
+        getListEntryPath(serviceModule.restconfRoot, getRoutePathKey(serviceModule, item.id))
+      );
       await invalidate(`data:services:${data.moduleId}`);
-      const successMessage = { type: 'success' as const, text: `Removed ${item.id}.` };
+      const successMessage = { type: 'success' as const, text: `Removed ${displayId}.` };
       statusMessage = successMessage;
       setTimeout(() => {
         if (statusMessage === successMessage) statusMessage = null;
@@ -101,7 +105,7 @@
                 <p>{item.description}</p>
               {/if}
             </div>
-            <span class="pill monospace">{item.id}</span>
+            <span class="pill monospace">{formatServiceRouteId(serviceModule, item.id)}</span>
           </a>
 
           <div class="service-list__actions">
@@ -125,7 +129,7 @@
 
   <ConfirmDialog
     open={pendingRemoval !== null}
-    title={pendingRemoval ? `Remove ${pendingRemoval.id}?` : 'Remove service?'}
+    title={pendingRemoval ? `Remove ${formatServiceRouteId(serviceModule, pendingRemoval.id)}?` : 'Remove service?'}
     message="This removes the RESTCONF entry for this service."
     confirmLabel="Remove"
     oncancel={() => (pendingRemoval = null)}

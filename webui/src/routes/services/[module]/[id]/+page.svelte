@@ -5,7 +5,13 @@
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
-  import { getDraftKey } from '$lib/core/registry/types';
+  import {
+    formatServiceRouteId,
+    getDraftKey,
+    getDraftKeyLabel,
+    getDraftPathKey,
+    getRoutePathKey
+  } from '$lib/core/registry/types';
   import { getListEntryPath, restconfDelete, restconfPutJson } from '$lib/core/restconf/client';
   import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
@@ -41,6 +47,7 @@
   let cloneHref = $derived(
     `/services/${serviceModule.id}/new?clone=${encodeURIComponent(data.serviceId)}`
   );
+  let displayServiceId = $derived(formatServiceRouteId(serviceModule, data.serviceId));
 
   untrack(() => bindStore(store));
 
@@ -113,7 +120,7 @@
     if (!key) {
       statusMessage = {
         type: 'error',
-        text: `The "${serviceModule.keyParam}" field is required before saving.`
+        text: `${getDraftKeyLabel(serviceModule)} is required before saving.`
       };
       return;
     }
@@ -123,7 +130,10 @@
       statusMessage = null;
       const snapshot = draft;
       const payload = serviceModule.serialize(snapshot);
-      await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
+      await restconfPutJson(
+        getListEntryPath(serviceModule.restconfRoot, getDraftPathKey(serviceModule, snapshot)),
+        payload
+      );
       store.markSaved(snapshot);
       const successMessage = { type: 'success' as const, text: `Saved ${key} successfully.` };
       statusMessage = successMessage;
@@ -148,7 +158,9 @@
     try {
       deleting = true;
       statusMessage = null;
-      await restconfDelete(getListEntryPath(serviceModule.restconfRoot, data.serviceId));
+      await restconfDelete(
+        getListEntryPath(serviceModule.restconfRoot, getRoutePathKey(serviceModule, data.serviceId))
+      );
       await goto(`/services/${serviceModule.id}`, {
         invalidateAll: true
       });
@@ -182,7 +194,7 @@
       <span>›</span>
       <a href={`/services/${serviceModule.id}`}>{serviceModule.title}</a>
       <span>›</span>
-      <span class="monospace">{data.serviceId}</span>
+      <span class="monospace">{displayServiceId}</span>
     </div>
   </div>
   <div>
@@ -192,7 +204,7 @@
 
 <ServiceWorkspace
   module={serviceModule}
-  title={`${serviceModule.title} · ${data.serviceId}`}
+  title={`${serviceModule.title} · ${displayServiceId}`}
   subtitle="Edit an existing RESTCONF list entry using the shared service workspace."
   {draft}
   {original}
@@ -214,7 +226,7 @@
 
 <ConfirmDialog
   open={confirmDeleteOpen}
-  title={`Remove ${data.serviceId}?`}
+  title={`Remove ${displayServiceId}?`}
   message="This removes the RESTCONF entry for this service."
   confirmLabel="Remove"
   oncancel={() => (confirmDeleteOpen = false)}

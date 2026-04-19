@@ -8,6 +8,12 @@ function normalizePath(path: string): string {
   return path.replace(/^\/+/, '');
 }
 
+function encodeListKeyPart(value: string): string {
+  // Double-encode forward slashes so the SvelteKit catch-all proxy route
+  // does not decode them into path separators before forwarding upstream.
+  return encodeURIComponent(value.trim()).replace(/%2F/gi, '%252F');
+}
+
 async function readResponse<T>(response: Response, readBody = true): Promise<T> {
   if (!response.ok) {
     const message = (await response.text()) || response.statusText;
@@ -80,6 +86,14 @@ export function restconfDelete(path: string): Promise<unknown> {
   });
 }
 
-export function getListEntryPath(root: string, key: string): string {
-  return `${normalizePath(root)}=${encodeURIComponent(key)}`;
+export function encodeListKey(key: string | string[]): string {
+  if (Array.isArray(key)) {
+    return key.map((part) => encodeListKeyPart(String(part))).join(',');
+  }
+
+  return encodeListKeyPart(String(key));
+}
+
+export function getListEntryPath(root: string, key: string | string[]): string {
+  return `${normalizePath(root)}=${encodeListKey(key)}`;
 }
