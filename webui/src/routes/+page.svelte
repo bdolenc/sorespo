@@ -22,6 +22,10 @@
   let totalServices = $derived(modules.length);
   let totalDevices = $derived(devices.length);
 
+  function configDotColor(device: DeviceSummary): string {
+    return device.hasRunningConfig === false ? 'var(--sw-danger)' : 'var(--sw-success)';
+  }
+
   async function loadDevices(): Promise<void> {
     try {
       loadingDevices = true;
@@ -152,7 +156,7 @@
             <div class="device-card__header">
               <h4>{device.name}</h4>
               <span class="pill">
-                <span class="dot" style="background: var(--sw-success);"></span>
+                <span class="dot" style={`background: ${configDotColor(device)};`}></span>
                 Device
               </span>
             </div>
