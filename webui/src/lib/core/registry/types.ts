@@ -19,6 +19,7 @@ export interface ServiceModule<TDraft = unknown> {
   keyParam: string;
   createDraft(): TDraft;
   parse(input: unknown): TDraft;
+  cloneDraft?(draft: TDraft): TDraft;
   list?(input: unknown): ServiceListItem[];
   validate(draft: TDraft): ValidationResult;
   serialize(draft: TDraft): unknown;
@@ -46,6 +47,32 @@ export function getDraftKey<TDraft>(module: ServiceModule<TDraft>, draft: TDraft
 }
 
 export type AnyServiceModule = ServiceModule<any>;
+
+function cloneValue<T>(value: T): T {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function createClonedDraft<TDraft>(module: ServiceModule<TDraft>, source: TDraft): TDraft {
+  const cloned = cloneValue(source);
+
+  if (module.cloneDraft) {
+    return module.cloneDraft(cloned);
+  }
+
+  if (cloned && typeof cloned === 'object') {
+    const draftRecord = cloned as Record<string, unknown>;
+
+    if (module.keyParam in draftRecord) {
+      draftRecord[module.keyParam] = '';
+    }
+  }
+
+  return cloned;
+}
 
 export interface ServiceModuleMeta {
   id: string;

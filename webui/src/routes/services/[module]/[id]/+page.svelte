@@ -38,6 +38,9 @@
   let unsubscribeDirty = () => {};
 
   let routeKey = $derived(`${data.moduleId}:${data.serviceId}`);
+  let cloneHref = $derived(
+    `/services/${serviceModule.id}/new?clone=${encodeURIComponent(data.serviceId)}`
+  );
 
   untrack(() => bindStore(store));
 
@@ -181,6 +184,9 @@
       <span>›</span>
       <span class="monospace">{data.serviceId}</span>
     </div>
+  </div>
+  <div>
+    <a class="btn btn-secondary" href={cloneHref}>Clone as new</a>
   </div>
 </div>
 

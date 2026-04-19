@@ -8,20 +8,40 @@
   import { getListEntryPath, restconfPutJson } from '$lib/core/restconf/client';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
-  let { data }: { data: { moduleId: string } } = $props();
+  let {
+    data
+  }: {
+    data: {
+      moduleId: string;
+      draft: unknown;
+      cloneSourceId: string;
+      cloneError: string;
+      routeKey: string;
+    };
+  } = $props();
 
   let serviceModule = $state(untrack(() => resolveServiceModule(data.moduleId)));
-  let store = untrack(() => createDraftStore(serviceModule.createDraft(), serviceModule.validate));
-  let lastModuleId = $state(untrack(() => data.moduleId));
+  let store = untrack(() => createDraftStore(data.draft, serviceModule.validate));
+  let lastRouteKey = $state(untrack(() => data.routeKey));
 
-  let draft = $state(untrack(() => serviceModule.createDraft()));
-  let original = $state(untrack(() => serviceModule.createDraft()));
-  let validation = $state(untrack(() => serviceModule.validate(draft)));
+  let draft = $state(untrack(() => data.draft));
+  let original = $state(untrack(() => data.draft));
+  let validation = $state(untrack(() => serviceModule.validate(data.draft)));
   let dirty = $state(false);
   let saving = $state(false);
   let validationActive = $state(false);
   let validationKey = $state(0);
-  let statusMessage: { type: 'success' | 'error'; text: string } | null = $state(null);
+  let statusMessage: { type: 'success' | 'error'; text: string } | null = $state(
+    untrack(() => (data.cloneError ? { type: 'error', text: data.cloneError } : null))
+  );
+
+  let subtitle = $derived.by(() => {
+    if (data.cloneSourceId && !data.cloneError) {
+      return `Cloned from ${data.cloneSourceId}. Update the ${serviceModule.keyParam} field before saving the new instance.`;
+    }
+
+    return 'Start from an empty draft, validate it locally, and save directly into RESTCONF.';
+  });
 
   let unsubscribeDraft = () => {};
   let unsubscribeOriginal = () => {};
@@ -35,9 +55,10 @@
   });
 
   $effect(() => {
-    if (data.moduleId === lastModuleId) return;
-    lastModuleId = data.moduleId;
-    initializeModule(data.moduleId);
+    if (data.routeKey === lastRouteKey) return;
+
+    lastRouteKey = data.routeKey;
+    initializeModule(data.moduleId, data.draft, data.cloneError);
   });
 
   function resolveServiceModule(moduleId: string) {
@@ -75,13 +96,13 @@
     });
   }
 
-  function initializeModule(moduleId: string): void {
+  function initializeModule(moduleId: string, nextDraft: unknown, cloneError: string): void {
     serviceModule = resolveServiceModule(moduleId);
-    bindStore(createDraftStore(serviceModule.createDraft(), serviceModule.validate));
+    bindStore(createDraftStore(nextDraft, serviceModule.validate));
     validationActive = false;
     validationKey += 1;
     saving = false;
-    statusMessage = null;
+    statusMessage = cloneError ? { type: 'error', text: cloneError } : null;
   }
 
   async function handleSave(): Promise<void> {
@@ -129,7 +150,7 @@
   <ServiceWorkspace
     module={serviceModule}
     title={`Create ${serviceModule.title}`}
-    subtitle="Start from an empty draft, validate it locally, and save directly into RESTCONF."
+    {subtitle}
     {draft}
     {original}
     {validation}

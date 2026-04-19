@@ -104,13 +104,20 @@
             <span class="pill monospace">{item.id}</span>
           </a>
 
-          {#if serviceModule.deletable}
-            <div class="service-list__actions">
+          <div class="service-list__actions">
+            <a
+              class="btn btn-secondary btn-sm"
+              href={`/services/${serviceModule.id}/new?clone=${encodeURIComponent(item.id)}`}
+            >
+              Clone
+            </a>
+
+            {#if serviceModule.deletable}
               <button class="btn btn-danger btn-sm" type="button" disabled={Boolean(removingId)} onclick={() => openRemoval(item)}>
                 {removingId === item.id ? 'Removing...' : 'Remove'}
               </button>
-            </div>
-          {/if}
+            {/if}
+          </div>
         </article>
       {/each}
     </div>
@@ -184,6 +191,10 @@
   }
 
   .service-list__actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
     flex-shrink: 0;
   }
 
