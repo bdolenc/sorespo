@@ -5,11 +5,12 @@ import type { Readable } from 'svelte/store';
 import type { ValidationResult } from '$lib/core/validation/types';
 
 function cloneDraft<T>(value: T): T {
+  const snapshot = $state.snapshot(value) as T;
   if (typeof structuredClone === 'function') {
-    return structuredClone(value);
+    return structuredClone(snapshot);
   }
 
-  return JSON.parse(JSON.stringify(value)) as T;
+  return JSON.parse(JSON.stringify(snapshot)) as T;
 }
 
 export interface DraftStore<TDraft> {
