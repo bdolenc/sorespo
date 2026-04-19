@@ -11,7 +11,7 @@
   let { data }: { data: { moduleId: string } } = $props();
 
   let serviceModule = $state(untrack(() => resolveServiceModule(data.moduleId)));
-  let store = $state(untrack(() => createDraftStore(serviceModule.createDraft(), serviceModule.validate)));
+  let store = untrack(() => createDraftStore(serviceModule.createDraft(), serviceModule.validate));
   let lastModuleId = $state(untrack(() => data.moduleId));
 
   let draft = $state(untrack(() => serviceModule.createDraft()));

@@ -17,9 +17,7 @@
   } = $props();
 
   let serviceModule = $state(untrack(() => resolveServiceModule(data.moduleId)));
-  let store = $state(
-    untrack(() => createDraftStore(data.draft, serviceModule.validate))
-  );
+  let store = untrack(() => createDraftStore(data.draft, serviceModule.validate));
   let draft = $state(untrack(() => data.draft));
   let validation = $state(untrack(() => serviceModule.validate(data.draft)));
   let dirty = $state(false);
