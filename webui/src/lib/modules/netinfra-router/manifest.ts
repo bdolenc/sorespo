@@ -20,6 +20,11 @@ export const module: ServiceModule<NetinfraRouterDraft> = {
   keyParam: 'name',
   createDraft: createNetinfraRouterDraft,
   parse: parseNetinfraRouter,
+  cloneDraft: (draft) => ({
+    ...draft,
+    name: '',
+    id: null
+  }),
   list: listNetinfraRouters,
   validate: validateNetinfraRouterDraft,
   serialize: serializeNetinfraRouterDraft,
