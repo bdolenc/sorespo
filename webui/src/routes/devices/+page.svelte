@@ -14,6 +14,10 @@
     devices.filter((device) => device.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  function configDotColor(device: DeviceSummary): string {
+    return device.hasRunningConfig === false ? 'var(--sw-danger)' : 'var(--sw-success)';
+  }
+
   onMount(() => {
     const handleRefresh = () => invalidate('data:devices');
     window.addEventListener('global-refresh', handleRefresh);
@@ -54,7 +58,7 @@
         <div class="device-card__header">
           <h3>{device.name}</h3>
           <span class="pill">
-            <span class="dot" style="background: var(--sw-success);"></span>
+            <span class="dot" style={`background: ${configDotColor(device)};`}></span>
             Device
           </span>
         </div>

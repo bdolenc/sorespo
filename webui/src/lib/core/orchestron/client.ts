@@ -3,6 +3,7 @@ const API_BASE = '/api';
 export interface DeviceSummary {
   id: string;
   name: string;
+  hasRunningConfig?: boolean;
 }
 
 export interface DeviceAddress {
@@ -85,10 +86,32 @@ async function apiRequest<T>(path: string, init: RequestInit = {}, fetchFn: Fetc
 
 export async function fetchDevices(fetchFn: Fetch = fetch): Promise<DeviceSummary[]> {
   const response = await apiRequest<{ devices?: string[] }>('/device', {}, fetchFn);
-  return (response.devices ?? []).map((name) => ({
-    id: name,
-    name
-  }));
+  const deviceNames = response.devices ?? [];
+
+  const summaries = await Promise.allSettled(
+    deviceNames.map(async (name) => {
+      const upperId = name.toUpperCase();
+      const info = await apiRequest<any>(`/device/${upperId}/info`, {}, fetchFn);
+
+      return {
+        id: upperId,
+        name: info.name || upperId,
+        hasRunningConfig: info.has_running_config
+      } satisfies DeviceSummary;
+    })
+  );
+
+  return summaries.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    }
+
+    const name = deviceNames[index] ?? '';
+    return {
+      id: name.toUpperCase(),
+      name
+    } satisfies DeviceSummary;
+  });
 }
 
 export async function fetchDevice(deviceId: string, fetchFn: Fetch = fetch): Promise<DeviceInfo> {
