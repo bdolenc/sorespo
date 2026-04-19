@@ -11,6 +11,7 @@
     title?: string;
     subtitle?: string;
     draft: unknown;
+    original?: unknown;
     validation: ValidationResult;
     dirty?: boolean;
     saving?: boolean;
@@ -35,6 +36,7 @@
     title = module.title,
     subtitle = module.description,
     draft,
+    original = undefined,
     validation,
     dirty = false,
     saving = false,
@@ -57,6 +59,7 @@
   const Editor = $derived(module.Editor);
   const Summary = $derived(module.Summary);
   let payload = $derived(module.serialize(draft));
+  let originalPayload = $derived(original === undefined ? undefined : module.serialize(original));
 </script>
 
 <div class="workspace">
@@ -112,7 +115,7 @@
 
       <div class="workspace__sidebar">
         <ValidationPanel {validation} active={validationActive} />
-        <PreviewPanel {draft} {payload} Preview={module.Preview} />
+        <PreviewPanel {draft} {payload} {originalPayload} Preview={module.Preview} />
       </div>
     </div>
   {/if}

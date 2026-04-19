@@ -15,6 +15,7 @@
   let lastModuleId = $state(untrack(() => data.moduleId));
 
   let draft = $state(untrack(() => serviceModule.createDraft()));
+  let original = $state(untrack(() => serviceModule.createDraft()));
   let validation = $state(untrack(() => serviceModule.validate(draft)));
   let dirty = $state(false);
   let saving = $state(false);
@@ -23,6 +24,7 @@
   let statusMessage: { type: 'success' | 'error'; text: string } | null = $state(null);
 
   let unsubscribeDraft = () => {};
+  let unsubscribeOriginal = () => {};
   let unsubscribeValidation = () => {};
   let unsubscribeDirty = () => {};
 
@@ -50,6 +52,7 @@
 
   function unbindStore(): void {
     unsubscribeDraft();
+    unsubscribeOriginal();
     unsubscribeValidation();
     unsubscribeDirty();
   }
@@ -60,6 +63,9 @@
     store = nextStore;
     unsubscribeDraft = store.draft.subscribe((value) => {
       draft = value;
+    });
+    unsubscribeOriginal = store.original.subscribe((value) => {
+      original = value;
     });
     unsubscribeValidation = store.validation.subscribe((value) => {
       validation = value;
@@ -125,6 +131,7 @@
     title={`Create ${serviceModule.title}`}
     subtitle="Start from an empty draft, validate it locally, and save directly into RESTCONF."
     {draft}
+    {original}
     {validation}
     {dirty}
     {saving}
