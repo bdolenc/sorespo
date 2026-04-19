@@ -3,12 +3,21 @@
 
   import { listServiceModuleMeta } from '$lib/core/registry/service-modules';
   import { fetchDevices, type DeviceSummary } from '$lib/core/orchestron/client';
+  import TopologyMap from '$lib/core/topology/TopologyMap.svelte';
+  import { buildTopologyGraph } from '$lib/core/topology/model';
+  import { restconfGetJson } from '$lib/core/restconf/client';
+
+  import type { L3VpnSitesPayload, NetinfraPayload, TopologyGraph } from '$lib/core/topology/model';
 
   const modules = listServiceModuleMeta();
 
   let devices: DeviceSummary[] = $state([]);
   let loadingDevices = $state(true);
   let loadError = $state('');
+  let topologyGraph: TopologyGraph | null = $state(null);
+  let loadingTopology = $state(true);
+  let topologyError = $state('');
+  let topologyNote = $state('');
 
   let totalServices = $derived(modules.length);
   let totalDevices = $derived(devices.length);
@@ -26,10 +35,48 @@
     }
   }
 
+  async function loadTopology(): Promise<void> {
+    try {
+      loadingTopology = true;
+      topologyError = '';
+      topologyNote = '';
+
+      const [netinfraResult, sitesResult] = await Promise.allSettled([
+        restconfGetJson<NetinfraPayload>('data/netinfra:netinfra'),
+        restconfGetJson<L3VpnSitesPayload>('data/ietf-l3vpn-svc:l3vpn-svc/sites')
+      ]);
+
+      if (netinfraResult.status !== 'fulfilled') {
+        topologyGraph = null;
+        topologyError = netinfraResult.reason instanceof Error
+          ? netinfraResult.reason.message
+          : 'Failed to load netinfra topology.';
+        return;
+      }
+
+      topologyGraph = buildTopologyGraph(
+        netinfraResult.value,
+        sitesResult.status === 'fulfilled' ? sitesResult.value : null
+      );
+
+      if (sitesResult.status !== 'fulfilled') {
+        topologyNote = sitesResult.reason instanceof Error
+          ? `L3VPN overlay unavailable: ${sitesResult.reason.message}`
+          : 'L3VPN overlay unavailable.';
+      }
+    } finally {
+      loadingTopology = false;
+    }
+  }
+
   onMount(() => {
     loadDevices();
+    loadTopology();
 
-    const handleRefresh = () => loadDevices();
+    const handleRefresh = () => {
+      loadDevices();
+      loadTopology();
+    };
     window.addEventListener('global-refresh', handleRefresh);
 
     return () => {
@@ -62,6 +109,25 @@
         <a class="btn btn-secondary btn-sm" href="/services">Open services</a>
       </div>
     </article>
+  </section>
+
+  <section class="overview__section">
+    <div class="section-head">
+      <div>
+        <h3>Network Topology</h3>
+        <p>Live map derived from `netinfra` and L3VPN site bearer references exposed by the API.</p>
+      </div>
+    </div>
+
+    {#if loadingTopology}
+      <div class="loading-state">Loading topology...</div>
+    {:else if topologyError}
+      <div class="error-state">{topologyError}</div>
+    {:else if topologyGraph && topologyGraph.routers.length === 0}
+      <div class="empty-state">No routers were returned by the topology API.</div>
+    {:else if topologyGraph}
+      <TopologyMap graph={topologyGraph} note={topologyNote} />
+    {/if}
   </section>
 
   <section class="overview__section">
