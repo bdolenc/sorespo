@@ -1,29 +1,44 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  export let label = '';
-  export let value = '';
-  export let placeholder = '';
-  export let error = '';
-  export let help = '';
-  export let yangType = '';
-  export let required = false;
-  export let disabled = false;
-  export let mono = false;
-  export let validationKey = 0;
-
-  const dispatch = createEventDispatcher<{ change: string; touch: void }>();
-
-  let touched = false;
-  let lastValidationKey = validationKey;
-
-  $: if (validationKey !== lastValidationKey) {
-    touched = false;
-    lastValidationKey = validationKey;
+  interface Props {
+    label?: string;
+    value?: string;
+    placeholder?: string;
+    error?: string;
+    help?: string;
+    yangType?: string;
+    required?: boolean;
+    disabled?: boolean;
+    mono?: boolean;
+    validationKey?: number;
+    onchange?: (next: string) => void;
+    ontouch?: () => void;
   }
 
-  $: visibleError = touched ? error : '';
-  $: metaText = visibleError || help || '\u00A0';
+  let {
+    label = '',
+    value = '',
+    placeholder = '',
+    error = '',
+    help = '',
+    yangType = '',
+    required = false,
+    disabled = false,
+    mono = false,
+    validationKey = 0,
+    onchange,
+    ontouch
+  }: Props = $props();
+
+  let touched = $state(false);
+
+  $effect(() => {
+    // Reset touched whenever validationKey bumps.
+    validationKey;
+    touched = false;
+  });
+
+  let visibleError = $derived(touched ? error : '');
+  let metaText = $derived(visibleError || help || '\u00A0');
 </script>
 
 <label class="field">
@@ -44,10 +59,10 @@
     {value}
     {placeholder}
     {disabled}
-    on:input={(event) => dispatch('change', (event.currentTarget as HTMLInputElement).value)}
-    on:blur={() => {
+    oninput={(event) => onchange?.((event.currentTarget as HTMLInputElement).value)}
+    onblur={() => {
       touched = true;
-      dispatch('touch');
+      ontouch?.();
     }}
   />
   <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>

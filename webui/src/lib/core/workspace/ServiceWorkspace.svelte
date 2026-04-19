@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
   import PreviewPanel from '$lib/core/workspace/PreviewPanel.svelte';
   import SaveBar from '$lib/core/workspace/SaveBar.svelte';
   import ValidationPanel from '$lib/core/workspace/ValidationPanel.svelte';
@@ -8,32 +6,57 @@
   import type { ServiceModule } from '$lib/core/registry/types';
   import type { ValidationResult } from '$lib/core/validation/types';
 
-  export let module: ServiceModule;
-  export let title = module.title;
-  export let subtitle = module.description;
-  export let draft: unknown;
-  export let validation: ValidationResult;
-  export let dirty = false;
-  export let saving = false;
-  export let deleting = false;
-  export let saveDisabled = false;
-  export let loading = false;
-  export let validationActive = false;
-  export let validationKey = 0;
-  export let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
-  export let showDelete = false;
-  export let deleteDisabled = false;
-  export let deleteLabel = 'Delete';
-
-  const dispatch = createEventDispatcher();
-  let Editor: any;
-
-  $: Editor = module.Editor;
-  $: payload = module.serialize(draft);
-
-  function forwardChange(event: CustomEvent<unknown>): void {
-    dispatch('change', event.detail);
+  interface Props {
+    module: ServiceModule;
+    title?: string;
+    subtitle?: string;
+    draft: unknown;
+    validation: ValidationResult;
+    dirty?: boolean;
+    saving?: boolean;
+    deleting?: boolean;
+    saveDisabled?: boolean;
+    loading?: boolean;
+    validationActive?: boolean;
+    validationKey?: number;
+    statusMessage?: { type: 'success' | 'error'; text: string } | null;
+    showDelete?: boolean;
+    deleteDisabled?: boolean;
+    deleteLabel?: string;
+    onchange?: (next: unknown) => void;
+    ontouch?: () => void;
+    onsave?: () => void;
+    onreset?: () => void;
+    ondelete?: () => void;
   }
+
+  let {
+    module,
+    title = module.title,
+    subtitle = module.description,
+    draft,
+    validation,
+    dirty = false,
+    saving = false,
+    deleting = false,
+    saveDisabled = false,
+    loading = false,
+    validationActive = false,
+    validationKey = 0,
+    statusMessage = null,
+    showDelete = false,
+    deleteDisabled = false,
+    deleteLabel = 'Delete',
+    onchange,
+    ontouch,
+    onsave,
+    onreset,
+    ondelete
+  }: Props = $props();
+
+  const Editor = $derived(module.Editor);
+  const Summary = $derived(module.Summary);
+  let payload = $derived(module.serialize(draft));
 </script>
 
 <div class="workspace">
@@ -69,21 +92,20 @@
         <div class="card-header">
           <h3>Editor</h3>
           <span class="card-badge">{module.id}</span>
-          {#if module.Summary}
+          {#if Summary}
             <div style="margin-left: auto;">
-              <svelte:component this={module.Summary} {draft} />
+              <Summary {draft} />
             </div>
           {/if}
         </div>
 
         <div class="card-body">
-          <svelte:component
-            this={Editor}
+          <Editor
             {draft}
             errors={validation.errors}
             {validationKey}
-            on:change={(event: Event) => forwardChange(event as CustomEvent<unknown>)}
-            on:touch={() => dispatch('touch')}
+            onchange={(next: unknown) => onchange?.(next)}
+            ontouch={() => ontouch?.()}
           />
         </div>
       </section>
@@ -103,9 +125,9 @@
     {showDelete}
     {deleteDisabled}
     {deleteLabel}
-    on:save={() => dispatch('save')}
-    on:reset={() => dispatch('reset')}
-    on:delete={() => dispatch('delete')}
+    onsave={() => onsave?.()}
+    onreset={() => onreset?.()}
+    ondelete={() => ondelete?.()}
   />
 </div>
 

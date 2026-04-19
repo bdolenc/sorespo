@@ -9,29 +9,36 @@
   } from '$lib/core/orchestron/client';
   import { queuesPoll, refreshQueues, type QueuesPollValue } from '$lib/core/orchestron/poll-store';
 
-  let allQueues: QueueItemSummary[] = [];
-  let loading = true;
-  let error = '';
-  let selectedDevice: string | null = null;
-  let selectedQueueIndex = 0;
-  let itemDetail: QueueItemDetail | null = null;
-  let approvingItem: string | null = null;
-  let diffFormat = 'xml';
+  let allQueues: QueueItemSummary[] = $state([]);
+  let loading = $state(true);
+  let error = $state('');
+  let selectedDevice: string | null = $state(null);
+  let selectedQueueIndex = $state(0);
+  let itemDetail: QueueItemDetail | null = $state(null);
+  let approvingItem: string | null = $state(null);
+  let diffFormat = $state('xml');
 
-  $: pendingCount = allQueues.filter((item) => item.approved !== true && item.approved !== false).length;
-  $: deviceGroups = allQueues.reduce<Record<string, QueueItemSummary[]>>((groups, item) => {
-    groups[item.deviceId] = [...(groups[item.deviceId] ?? []), item];
-    return groups;
-  }, {});
-  $: deviceList = Object.entries(deviceGroups).map(([deviceId, items]) => ({
-    deviceId,
-    items,
-    count: items.filter((item) => item.approved !== true && item.approved !== false).length
-  }));
-  $: selectedItem =
+  let pendingCount = $derived(
+    allQueues.filter((item) => item.approved !== true && item.approved !== false).length
+  );
+  let deviceGroups = $derived(
+    allQueues.reduce<Record<string, QueueItemSummary[]>>((groups, item) => {
+      groups[item.deviceId] = [...(groups[item.deviceId] ?? []), item];
+      return groups;
+    }, {})
+  );
+  let deviceList = $derived(
+    Object.entries(deviceGroups).map(([deviceId, items]) => ({
+      deviceId,
+      items,
+      count: items.filter((item) => item.approved !== true && item.approved !== false).length
+    }))
+  );
+  let selectedItem = $derived(
     selectedDevice && deviceGroups[selectedDevice]
       ? deviceGroups[selectedDevice][selectedQueueIndex] ?? null
-      : null;
+      : null
+  );
 
   onMount(() => {
     const unsubscribePoll = queuesPoll.subscribe((value) => {
@@ -168,7 +175,7 @@
       <div class="queue-device-list">
         {#each deviceList as device}
           <div class:selected={selectedDevice === device.deviceId} class="queue-device">
-            <button type="button" on:click={() => selectDevice(device.deviceId, 0)}>
+            <button type="button" onclick={() => selectDevice(device.deviceId, 0)}>
               <strong>{device.deviceId}</strong>
               <span class="pill warning">{device.count}</span>
             </button>
@@ -179,7 +186,7 @@
                     class:active={selectedQueueIndex === index}
                     class="queue-device__item"
                     type="button"
-                    on:click={() => selectDevice(device.deviceId, index)}
+                    onclick={() => selectDevice(device.deviceId, index)}
                   >
                     <span>#{item.queueId}</span>
                     <small>{item.approved === true ? 'Approved' : item.approved === false ? 'Rejected' : 'Pending'}</small>
@@ -213,23 +220,23 @@
           </p>
         </div>
         <div class="segmented">
-          <button class:active={diffFormat === 'xml'} type="button" on:click={() => changeFormat('xml')}>XML</button>
-          <button class:active={diffFormat === 'json'} type="button" on:click={() => changeFormat('json')}>JSON</button>
-          <button class:active={diffFormat === 'adata'} type="button" on:click={() => changeFormat('adata')}>AData</button>
-          <button class:active={diffFormat === 'gdata'} type="button" on:click={() => changeFormat('gdata')}>GData</button>
+          <button class:active={diffFormat === 'xml'} type="button" onclick={() => changeFormat('xml')}>XML</button>
+          <button class:active={diffFormat === 'json'} type="button" onclick={() => changeFormat('json')}>JSON</button>
+          <button class:active={diffFormat === 'adata'} type="button" onclick={() => changeFormat('adata')}>AData</button>
+          <button class:active={diffFormat === 'gdata'} type="button" onclick={() => changeFormat('gdata')}>GData</button>
         </div>
       </div>
 
       <div class="queue-layout__detail-toolbar">
         <div class="queue-layout__nav">
-          <button class="btn btn-secondary" type="button" disabled={selectedQueueIndex === 0} on:click={() => navigateQueue('prev')}>
+          <button class="btn btn-secondary" type="button" disabled={selectedQueueIndex === 0} onclick={() => navigateQueue('prev')}>
             Previous
           </button>
           <button
             class="btn btn-secondary"
             type="button"
             disabled={!selectedDevice || selectedQueueIndex >= (deviceGroups[selectedDevice]?.length ?? 1) - 1}
-            on:click={() => navigateQueue('next')}
+            onclick={() => navigateQueue('next')}
           >
             Next
           </button>
@@ -240,7 +247,7 @@
             type="button"
             disabled={selectedQueueIndex !== 0 || approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}`}
             title={selectedQueueIndex !== 0 ? 'Only the first queued change per device can be approved or rejected.' : undefined}
-            on:click={() => handleDecision(false)}
+            onclick={() => handleDecision(false)}
           >
             {approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}` ? 'Updating...' : 'Reject'}
           </button>
@@ -249,7 +256,7 @@
             type="button"
             disabled={selectedQueueIndex !== 0 || approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}`}
             title={selectedQueueIndex !== 0 ? 'Only the first queued change per device can be approved or rejected.' : undefined}
-            on:click={() => handleDecision(true)}
+            onclick={() => handleDecision(true)}
           >
             {approvingItem === `${selectedItem.deviceId}:${selectedItem.queueId}` ? 'Updating...' : 'Approve & Apply'}
           </button>

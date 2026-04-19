@@ -2,6 +2,8 @@ import type { RestconfRequestOptions } from '$lib/core/restconf/proxy-types';
 
 const RESTCONF_BASE = '/api/restconf';
 
+type Fetch = typeof fetch;
+
 function normalizePath(path: string): string {
   return path.replace(/^\/+/, '');
 }
@@ -30,7 +32,8 @@ async function readResponse<T>(response: Response, readBody = true): Promise<T> 
 
 export async function restconfRequest<T>(
   path: string,
-  init: RequestInit & RestconfRequestOptions = {}
+  init: RequestInit & RestconfRequestOptions = {},
+  fetchFn: Fetch = fetch
 ): Promise<T> {
   const headers = new Headers(init.headers);
 
@@ -44,7 +47,7 @@ export async function restconfRequest<T>(
     headers.set('content-type', init.contentType);
   }
 
-  const response = await fetch(`${RESTCONF_BASE}/${normalizePath(path)}`, {
+  const response = await fetchFn(`${RESTCONF_BASE}/${normalizePath(path)}`, {
     ...init,
     headers
   });
@@ -52,11 +55,11 @@ export async function restconfRequest<T>(
   return readResponse<T>(response, init.readBody ?? true);
 }
 
-export function restconfGetJson<T>(path: string): Promise<T> {
+export function restconfGetJson<T>(path: string, fetchFn: Fetch = fetch): Promise<T> {
   return restconfRequest<T>(path, {
     method: 'GET',
     accept: 'application/yang-data+json'
-  });
+  }, fetchFn);
 }
 
 export function restconfPutJson<T>(path: string, body: unknown): Promise<T> {

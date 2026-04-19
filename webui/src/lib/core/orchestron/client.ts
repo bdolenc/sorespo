@@ -66,7 +66,9 @@ async function readJson<T>(response: Response): Promise<T> {
   return text ? (JSON.parse(text) as T) : (null as T);
 }
 
-async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+type Fetch = typeof fetch;
+
+async function apiRequest<T>(path: string, init: RequestInit = {}, fetchFn: Fetch = fetch): Promise<T> {
   const headers = new Headers(init.headers);
 
   if (!headers.has('content-type') && init.body) {
@@ -74,24 +76,24 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   return readJson<T>(
-    await fetch(`${API_BASE}${path}`, {
+    await fetchFn(`${API_BASE}${path}`, {
       ...init,
       headers
     })
   );
 }
 
-export async function fetchDevices(): Promise<DeviceSummary[]> {
-  const response = await apiRequest<{ devices?: string[] }>('/device');
+export async function fetchDevices(fetchFn: Fetch = fetch): Promise<DeviceSummary[]> {
+  const response = await apiRequest<{ devices?: string[] }>('/device', {}, fetchFn);
   return (response.devices ?? []).map((name) => ({
     id: name,
     name
   }));
 }
 
-export async function fetchDevice(deviceId: string): Promise<DeviceInfo> {
+export async function fetchDevice(deviceId: string, fetchFn: Fetch = fetch): Promise<DeviceInfo> {
   const upperId = deviceId.toUpperCase();
-  const info = await apiRequest<any>(`/device/${upperId}/info`);
+  const info = await apiRequest<any>(`/device/${upperId}/info`, {}, fetchFn);
   return {
     id: upperId,
     name: info.name || upperId,

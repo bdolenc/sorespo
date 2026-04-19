@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
   import FieldSelect from '$lib/core/ui/FieldSelect.svelte';
   import FieldText from '$lib/core/ui/FieldText.svelte';
   import Section from '$lib/core/ui/Section.svelte';
@@ -8,14 +6,18 @@
 
   import type { L3VpnVpnServiceDraft } from '$lib/modules/l3vpn-vpn-service/model';
 
-  export let draft: L3VpnVpnServiceDraft;
-  export let errors: Record<string, string> = {};
-  export let validationKey = 0;
+  interface Props {
+    draft: L3VpnVpnServiceDraft;
+    errors?: Record<string, string>;
+    validationKey?: number;
+    onchange?: (next: L3VpnVpnServiceDraft) => void;
+    ontouch?: () => void;
+  }
 
-  const dispatch = createEventDispatcher<{ change: L3VpnVpnServiceDraft; touch: void }>();
+  let { draft, errors = {}, validationKey = 0, onchange, ontouch }: Props = $props();
 
   function patch(values: Partial<L3VpnVpnServiceDraft>): void {
-    dispatch('change', {
+    onchange?.({
       ...draft,
       ...values
     });
@@ -38,8 +40,8 @@
         placeholder="e.g., acme-65501"
         yangType="svc-id (key)"
         mono={true}
-        on:change={(event) => patch({ vpnId: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ vpnId: value })}
+        ontouch={() => ontouch?.()}
       />
       <FieldText
         label="Customer name"
@@ -49,8 +51,8 @@
         placeholder="e.g., CUSTOMER-1"
         yangType="string"
         help="Optional in the model, but recommended for readable service inventory."
-        on:change={(event) => patch({ customerName: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ customerName: value })}
+        ontouch={() => ontouch?.()}
       />
     </div>
   </Section>
@@ -69,8 +71,8 @@
         {validationKey}
         yangType="identityref"
         help="`any-to-any` is the YANG default and matches the existing quicklab sample."
-        on:change={(event) => patch({ topology: event.detail as L3VpnVpnServiceDraft['topology'] })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ topology: value as L3VpnVpnServiceDraft['topology'] })}
+        ontouch={() => ontouch?.()}
       />
     </div>
   </Section>

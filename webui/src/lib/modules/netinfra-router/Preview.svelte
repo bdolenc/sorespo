@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { NetinfraRouterDraft } from '$lib/modules/netinfra-router/model';
 
-  export let draft: NetinfraRouterDraft;
-  export let payload: unknown;
+  let { draft, payload }: { draft: NetinfraRouterDraft; payload: unknown } = $props();
 </script>
 
 <div class="preview">

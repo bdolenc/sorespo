@@ -1,7 +1,13 @@
 <script lang="ts">
-  export let draft: unknown;
-  export let payload: unknown;
-  export let Preview: any = null;
+  import type { Component } from 'svelte';
+
+  interface Props {
+    draft: unknown;
+    payload: unknown;
+    Preview?: Component<{ draft: unknown; payload: unknown }> | null;
+  }
+
+  let { draft, payload, Preview = null }: Props = $props();
 </script>
 
 <section class="preview-panel card">
@@ -12,7 +18,7 @@
 
   <div class="card-body">
     {#if Preview}
-      <svelte:component this={Preview} {draft} {payload} />
+      <Preview {draft} {payload} />
     {:else}
       <pre>{JSON.stringify(payload, null, 2)}</pre>
     {/if}

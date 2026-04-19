@@ -1,67 +1,53 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
 
   import {
     approveConfigQueueItem,
     fetchConfigQueueItem,
-    fetchDevice,
     fetchDeviceConfigQueue,
     resyncDevice,
     type DeviceInfo,
     type QueueItemDetail
   } from '$lib/core/orchestron/client';
 
-  export let data: { deviceId: string };
+  let {
+    data
+  }: { data: { deviceId: string; device: DeviceInfo | null; loadError: string } } = $props();
 
-  let deviceId = data.deviceId;
-  let lastLoadedId = '';
+  let lastLoadedId = $state('');
 
-  let device: DeviceInfo | null = null;
-  let configQueue: Record<string, { approved?: boolean }> = {};
-  let selectedQueueItem: string | null = null;
-  let queueItemDetail: QueueItemDetail | null = null;
-  let loading = true;
-  let error = '';
-  let resyncing = false;
-  let message: { type: 'success' | 'error'; text: string } | null = null;
-  let loadingQueue = false;
-  let approvingItem: string | null = null;
+  let configQueue: Record<string, { approved?: boolean }> = $state({});
+  let selectedQueueItem: string | null = $state(null);
+  let queueItemDetail: QueueItemDetail | null = $state(null);
+  let resyncing = $state(false);
+  let message: { type: 'success' | 'error'; text: string } | null = $state(null);
+  let loadingQueue = $state(false);
+  let approvingItem: string | null = $state(null);
 
-  $: deviceId = data.deviceId;
-  $: if (browser && deviceId && deviceId !== lastLoadedId) {
-    lastLoadedId = deviceId;
-    loadDevice();
-  }
+  let device = $derived(data.device);
+  let deviceId = $derived(data.deviceId);
+  let error = $derived(data.loadError);
+
+  $effect(() => {
+    if (browser && deviceId && deviceId !== lastLoadedId) {
+      lastLoadedId = deviceId;
+      loadConfigQueue(deviceId);
+    }
+  });
 
   onMount(() => {
-    const handleRefresh = () => loadDevice();
+    const handleRefresh = () => {
+      invalidate(`data:device:${data.deviceId}`);
+      loadConfigQueue();
+    };
     window.addEventListener('global-refresh', handleRefresh);
 
     return () => {
       window.removeEventListener('global-refresh', handleRefresh);
     };
   });
-
-  async function loadDevice(): Promise<void> {
-    const requestId = data.deviceId;
-    try {
-      loading = true;
-      error = '';
-      message = null;
-      const info = await fetchDevice(requestId);
-      if (requestId !== data.deviceId) return;
-      device = info;
-      await loadConfigQueue(requestId);
-    } catch (loadError) {
-      if (requestId !== data.deviceId) return;
-      error = loadError instanceof Error ? loadError.message : 'Failed to load device.';
-    } finally {
-      if (requestId === data.deviceId) {
-        loading = false;
-      }
-    }
-  }
 
   async function loadConfigQueue(requestId = data.deviceId): Promise<void> {
     try {
@@ -130,7 +116,8 @@
       message = null;
       await resyncDevice(deviceId);
       message = { type: 'success', text: 'Device resynced successfully.' };
-      await loadDevice();
+      await invalidate(`data:device:${data.deviceId}`);
+      await loadConfigQueue();
     } catch (resyncError) {
       message = {
         type: 'error',
@@ -151,9 +138,7 @@
     </div>
   </div>
 
-  {#if loading}
-    <div class="loading-state">Loading device details...</div>
-  {:else if error}
+  {#if error}
     <div class="error-state">{error}</div>
   {:else if device}
     <div class="card device-detail__content">
@@ -172,7 +157,7 @@
       {/if}
 
       <div class="device-detail__actions">
-        <button class="btn btn-primary" type="button" disabled={resyncing} on:click={handleResync}>
+        <button class="btn btn-primary" type="button" disabled={resyncing} onclick={handleResync}>
           {resyncing ? 'Resyncing...' : 'Resync'}
         </button>
         <a class="btn btn-secondary" href={`/devices/${deviceId}/config`}>View Configuration</a>
@@ -279,7 +264,7 @@
                     </span>
                   </div>
                   <div class="queue-card__actions">
-                    <button class="btn btn-secondary" type="button" on:click={() => viewQueueItem(queueId)}>
+                    <button class="btn btn-secondary" type="button" onclick={() => viewQueueItem(queueId)}>
                       View details
                     </button>
                     {#if item.approved !== true}
@@ -287,7 +272,7 @@
                         class="btn btn-success"
                         type="button"
                         disabled={approvingItem === queueId}
-                        on:click={() => handleApproveItem(queueId)}
+                        onclick={() => handleApproveItem(queueId)}
                       >
                         {approvingItem === queueId ? 'Approving...' : 'Approve'}
                       </button>

@@ -1,7 +1,15 @@
 <script lang="ts">
-  export let title = '';
-  export let description = '';
-  export let yangPath = '';
+  import type { Snippet } from 'svelte';
+
+  interface Props {
+    title?: string;
+    description?: string;
+    yangPath?: string;
+    children?: Snippet;
+    actions?: Snippet;
+  }
+
+  let { title = '', description = '', yangPath = '', children, actions }: Props = $props();
 </script>
 
 <section class="section">
@@ -16,12 +24,12 @@
       {#if yangPath}
         <span class="section__yang-path">{yangPath}</span>
       {/if}
-      <slot name="actions" />
+      {@render actions?.()}
     </div>
   </header>
 
   <div class="section__content">
-    <slot />
+    {@render children?.()}
   </div>
 </section>
 

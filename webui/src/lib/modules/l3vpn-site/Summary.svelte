@@ -3,7 +3,7 @@
 
   import type { L3VpnSiteDraft } from '$lib/modules/l3vpn-site/model';
 
-  export let draft: L3VpnSiteDraft;
+  let { draft }: { draft: L3VpnSiteDraft } = $props();
 </script>
 
 <div class="summary">

@@ -3,8 +3,7 @@
 
   import type { L3VpnVpnServiceDraft } from '$lib/modules/l3vpn-vpn-service/model';
 
-  export let draft: L3VpnVpnServiceDraft;
-  export let payload: unknown;
+  let { draft, payload }: { draft: L3VpnVpnServiceDraft; payload: unknown } = $props();
 </script>
 
 <div class="preview">

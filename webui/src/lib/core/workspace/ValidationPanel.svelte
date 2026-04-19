@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { ValidationResult } from '$lib/core/validation/types';
 
-export let validation: ValidationResult = {
-  ok: true,
-  errors: {}
-};
-export let active = true;
+  interface Props {
+    validation?: ValidationResult;
+    active?: boolean;
+  }
+
+  let { validation = { ok: true, errors: {} }, active = true }: Props = $props();
 </script>
 
 <section class="validation-panel card">

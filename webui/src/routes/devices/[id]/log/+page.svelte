@@ -3,32 +3,34 @@
   import { onMount } from 'svelte';
 
   import {
-    fetchDevice,
     fetchDeviceConfigLog,
     type ConfigLogEntry,
     type DeviceInfo
   } from '$lib/core/orchestron/client';
 
-  export let data: { deviceId: string };
+  let {
+    data
+  }: { data: { deviceId: string; device: DeviceInfo | null; loadError: string } } = $props();
 
-  let deviceId = data.deviceId;
-  let lastLoadedId = '';
+  let lastLoadedId = $state('');
 
-  let device: DeviceInfo | null = null;
-  let configLog: ConfigLogEntry[] = [];
-  let selectedEntry: ConfigLogEntry | null = null;
-  let selectedIndex = -1;
-  let configFormat = 'xml';
-  let loading = true;
-  let error = '';
-  let loadingLog = false;
+  let configLog: ConfigLogEntry[] = $state([]);
+  let selectedEntry: ConfigLogEntry | null = $state(null);
+  let selectedIndex = $state(-1);
+  let configFormat = $state('xml');
+  let loadingLog = $state(false);
   let pollHandle: ReturnType<typeof setInterval> | null = null;
 
-  $: deviceId = data.deviceId;
-  $: if (browser && deviceId && deviceId !== lastLoadedId) {
-    lastLoadedId = deviceId;
-    loadDevice();
-  }
+  let device = $derived(data.device);
+  let deviceId = $derived(data.deviceId);
+  let error = $derived(data.loadError);
+
+  $effect(() => {
+    if (browser && deviceId && deviceId !== lastLoadedId) {
+      lastLoadedId = deviceId;
+      loadLog(false, deviceId);
+    }
+  });
 
   onMount(() => {
     const handleRefresh = () => loadLog();
@@ -47,25 +49,6 @@
       }
     };
   });
-
-  async function loadDevice(): Promise<void> {
-    const requestId = data.deviceId;
-    try {
-      loading = true;
-      error = '';
-      const info = await fetchDevice(requestId);
-      if (requestId !== data.deviceId) return;
-      device = info;
-      await loadLog(false, requestId);
-    } catch (loadError) {
-      if (requestId !== data.deviceId) return;
-      error = loadError instanceof Error ? loadError.message : 'Failed to load device.';
-    } finally {
-      if (requestId === data.deviceId) {
-        loading = false;
-      }
-    }
-  }
 
   async function loadLog(silent = false, requestId = data.deviceId): Promise<void> {
     try {
@@ -157,9 +140,7 @@
   </div>
 </div>
 
-{#if loading}
-  <div class="loading-state">Loading device...</div>
-{:else if error}
+{#if error}
   <div class="error-state">{error}</div>
 {:else if device}
   <div class="log-layout">
@@ -173,7 +154,7 @@
           <div class="empty-state">No configuration changes logged.</div>
         {:else}
           {#each configLog as entry, index}
-            <button class:selected={selectedIndex === index} class="log-entry" type="button" on:click={() => selectEntry(index)}>
+            <button class:selected={selectedIndex === index} class="log-entry" type="button" onclick={() => selectEntry(index)}>
               <span style={`color: ${getEventColor(entry.event)}`}>{entry.event}</span>
               <small>{formatTimestamp(entry.timestamp)}</small>
             </button>
@@ -190,7 +171,7 @@
         </div>
         <div class="segmented">
           <button type="button" disabled>JSON</button>
-          <button class:active={configFormat === 'xml'} type="button" on:click={() => changeFormat('xml')}>XML</button>
+          <button class:active={configFormat === 'xml'} type="button" onclick={() => changeFormat('xml')}>XML</button>
           <button type="button" disabled>GData</button>
         </div>
       </div>
@@ -326,9 +307,10 @@
     padding: 1rem;
     min-height: 28rem;
     overflow: auto;
-    border-radius: 1rem;
-    background: #0f2335;
-    color: #dcecf9;
+    border-radius: var(--sw-radius-md);
+    background: var(--sw-bg-deep);
+    border: 1px solid var(--sw-border-subtle);
+    color: var(--sw-text-secondary);
   }
 
   @media (max-width: 960px) {

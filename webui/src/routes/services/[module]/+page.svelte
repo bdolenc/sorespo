@@ -1,62 +1,38 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
+  import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
 
   import { getServiceModule } from '$lib/core/registry/service-modules';
-  import { getListEntryPath, restconfDelete, restconfGetJson } from '$lib/core/restconf/client';
+  import { getListEntryPath, restconfDelete } from '$lib/core/restconf/client';
   import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
 
-  export let data: { moduleId: string; title: string; description: string };
+  import type { ServiceListItem } from '$lib/core/registry/types';
 
-  let serviceModule = getServiceModule(data.moduleId);
-  let lastModuleId = '';
-  let loading = Boolean(serviceModule?.list);
-  let removingId = '';
-  let error = '';
-  let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
-  let pendingRemoval: { id: string; label: string } | null = null;
-  let items: { id: string; label: string; description?: string }[] = [];
+  let {
+    data
+  }: {
+    data: {
+      moduleId: string;
+      title: string;
+      description: string;
+      items: ServiceListItem[];
+      loadError: string;
+    };
+  } = $props();
+
+  let removingId = $state('');
+  let statusMessage: { type: 'success' | 'error'; text: string } | null = $state(null);
+  let pendingRemoval: { id: string; label: string } | null = $state(null);
+
+  let serviceModule = $derived(getServiceModule(data.moduleId));
+  let items = $derived(data.items);
+  let error = $derived(data.loadError);
 
   onMount(() => {
-    if (!serviceModule?.list) {
-      loading = false;
-      return;
-    }
-
-    loadItems();
+    const handleRefresh = () => invalidate(`data:services:${data.moduleId}`);
+    window.addEventListener('global-refresh', handleRefresh);
+    return () => window.removeEventListener('global-refresh', handleRefresh);
   });
-
-  $: if (browser && data.moduleId !== lastModuleId) {
-    lastModuleId = data.moduleId;
-    serviceModule = getServiceModule(data.moduleId);
-    loading = Boolean(serviceModule?.list);
-    removingId = '';
-    error = '';
-    statusMessage = null;
-    pendingRemoval = null;
-    items = [];
-
-    if (serviceModule?.list) {
-      loadItems();
-    }
-  }
-
-  async function loadItems(): Promise<void> {
-    if (!serviceModule?.list) {
-      return;
-    }
-
-    try {
-      loading = true;
-      error = '';
-      const response = await restconfGetJson(serviceModule.collectionRestconfRoot ?? serviceModule.restconfRoot);
-      items = serviceModule.list(response);
-    } catch (loadError) {
-      error = loadError instanceof Error ? loadError.message : 'Failed to load existing services.';
-    } finally {
-      loading = false;
-    }
-  }
 
   function openRemoval(item: { id: string; label: string }): void {
     pendingRemoval = item;
@@ -72,14 +48,14 @@
 
     try {
       removingId = item.id;
-      error = '';
       statusMessage = null;
       await restconfDelete(getListEntryPath(serviceModule.restconfRoot, item.id));
-      await loadItems();
-      statusMessage = {
-        type: 'success',
-        text: `Removed ${item.id}.`
-      };
+      await invalidate(`data:services:${data.moduleId}`);
+      const successMessage = { type: 'success' as const, text: `Removed ${item.id}.` };
+      statusMessage = successMessage;
+      setTimeout(() => {
+        if (statusMessage === successMessage) statusMessage = null;
+      }, 3000);
     } catch (removeError) {
       statusMessage = {
         type: 'error',
@@ -108,9 +84,7 @@
     </div>
   {/if}
 
-  {#if loading}
-    <div class="loading-state">Loading {serviceModule.collectionLabel.toLowerCase()}...</div>
-  {:else if error}
+  {#if error}
     <div class="error-state">{error}</div>
   {:else if !serviceModule.list}
     <div class="empty-state">This module does not expose a collection view yet.</div>
@@ -132,7 +106,7 @@
 
           {#if serviceModule.deletable}
             <div class="service-list__actions">
-              <button class="btn btn-danger btn-sm" type="button" disabled={Boolean(removingId)} on:click={() => openRemoval(item)}>
+              <button class="btn btn-danger btn-sm" type="button" disabled={Boolean(removingId)} onclick={() => openRemoval(item)}>
                 {removingId === item.id ? 'Removing...' : 'Remove'}
               </button>
             </div>
@@ -147,8 +121,8 @@
     title={pendingRemoval ? `Remove ${pendingRemoval.id}?` : 'Remove service?'}
     message="This removes the RESTCONF entry for this service."
     confirmLabel="Remove"
-    on:cancel={() => (pendingRemoval = null)}
-    on:confirm={confirmRemoval}
+    oncancel={() => (pendingRemoval = null)}
+    onconfirm={confirmRemoval}
   />
 {/if}
 
