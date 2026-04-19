@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { NetinfraRouterDraft } from '$lib/modules/netinfra-router/model';
 
-  export let draft: NetinfraRouterDraft;
+  let { draft }: { draft: NetinfraRouterDraft } = $props();
 </script>
 
 <div class="summary">

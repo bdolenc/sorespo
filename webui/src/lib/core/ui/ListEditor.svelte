@@ -1,17 +1,29 @@
 <script lang="ts" generics="T">
-  import { createEventDispatcher } from 'svelte';
+  import type { Snippet } from 'svelte';
 
-  export let title = '';
-  export let description = '';
-  export let items: T[] = [];
-  export let addLabel = 'Add item';
-  export let emptyLabel = 'No items configured yet.';
-  export let getItemLabel: (item: T, index: number) => string = (_item, index) => `Item ${index + 1}`;
+  interface Props {
+    title?: string;
+    description?: string;
+    items?: T[];
+    addLabel?: string;
+    emptyLabel?: string;
+    getItemLabel?: (item: T, index: number) => string;
+    onadd?: () => void;
+    onremove?: (index: number) => void;
+    row?: Snippet<[T, number]>;
+  }
 
-  const dispatch = createEventDispatcher<{
-    add: void;
-    remove: number;
-  }>();
+  let {
+    title = '',
+    description = '',
+    items = [],
+    addLabel = 'Add item',
+    emptyLabel = 'No items configured yet.',
+    getItemLabel = (_item, index) => `Item ${index + 1}`,
+    onadd,
+    onremove,
+    row
+  }: Props = $props();
 </script>
 
 <div class="list-editor">
@@ -23,7 +35,7 @@
       {/if}
     </div>
 
-    <button class="btn btn-secondary btn-sm" type="button" on:click={() => dispatch('add')}>
+    <button class="btn btn-secondary btn-sm" type="button" onclick={() => onadd?.()}>
       {addLabel}
     </button>
   </div>
@@ -36,13 +48,13 @@
         <article class="card list-editor__item">
           <div class="card-header list-editor__item-header">
             <h5>{getItemLabel(item, index)}</h5>
-            <button class="btn btn-danger btn-sm" type="button" on:click={() => dispatch('remove', index)}>
+            <button class="btn btn-danger btn-sm" type="button" onclick={() => onremove?.(index)}>
               Remove
             </button>
           </div>
 
           <div class="card-body list-editor__item-body">
-            <slot name="item" {item} {index} />
+            {@render row?.(item, index)}
           </div>
         </article>
       {/each}

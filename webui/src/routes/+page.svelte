@@ -6,12 +6,12 @@
 
   const modules = listServiceModuleMeta();
 
-  let devices: DeviceSummary[] = [];
-  let loadingDevices = true;
-  let loadError = '';
+  let devices: DeviceSummary[] = $state([]);
+  let loadingDevices = $state(true);
+  let loadError = $state('');
 
-  $: totalServices = modules.length;
-  $: totalDevices = devices.length;
+  let totalServices = $derived(modules.length);
+  let totalDevices = $derived(devices.length);
 
   async function loadDevices(): Promise<void> {
     try {

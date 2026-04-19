@@ -1,20 +1,31 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  interface Props {
+    dirty?: boolean;
+    saving?: boolean;
+    deleting?: boolean;
+    saveDisabled?: boolean;
+    saveLabel?: string;
+    showDelete?: boolean;
+    deleteDisabled?: boolean;
+    deleteLabel?: string;
+    onsave?: () => void;
+    onreset?: () => void;
+    ondelete?: () => void;
+  }
 
-  export let dirty = false;
-  export let saving = false;
-  export let deleting = false;
-  export let saveDisabled = false;
-  export let saveLabel = 'Save';
-  export let showDelete = false;
-  export let deleteDisabled = false;
-  export let deleteLabel = 'Delete';
-
-  const dispatch = createEventDispatcher<{
-    save: void;
-    reset: void;
-    delete: void;
-  }>();
+  let {
+    dirty = false,
+    saving = false,
+    deleting = false,
+    saveDisabled = false,
+    saveLabel = 'Save',
+    showDelete = false,
+    deleteDisabled = false,
+    deleteLabel = 'Delete',
+    onsave,
+    onreset,
+    ondelete
+  }: Props = $props();
 </script>
 
 <div class="save-bar card">
@@ -26,14 +37,14 @@
 
     <div class="save-bar__actions">
       {#if showDelete}
-        <button class="btn btn-danger" type="button" disabled={deleteDisabled || deleting || saving} on:click={() => dispatch('delete')}>
+        <button class="btn btn-danger" type="button" disabled={deleteDisabled || deleting || saving} onclick={() => ondelete?.()}>
           {deleting ? 'Deleting...' : deleteLabel}
         </button>
       {/if}
-      <button class="btn" type="button" disabled={!dirty || saving} on:click={() => dispatch('reset')}>
+      <button class="btn" type="button" disabled={!dirty || saving} onclick={() => onreset?.()}>
         Reset
       </button>
-      <button class="btn btn-primary" type="button" disabled={saveDisabled || saving} on:click={() => dispatch('save')}>
+      <button class="btn btn-primary" type="button" disabled={saveDisabled || saving} onclick={() => onsave?.()}>
         {saving ? 'Saving...' : saveLabel}
       </button>
     </div>

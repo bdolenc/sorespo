@@ -1,32 +1,48 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  export let label = '';
-  export let value: number | null = null;
-  export let min: number | undefined = undefined;
-  export let max: number | undefined = undefined;
-  export let step: number | undefined = 1;
-  export let placeholder = '';
-  export let error = '';
-  export let help = '';
-  export let yangType = '';
-  export let required = false;
-  export let disabled = false;
-  export let validationKey = 0;
-
-  const dispatch = createEventDispatcher<{ change: number | null; touch: void }>();
-
-  let touched = false;
-  let lastValidationKey = validationKey;
-
-  $: if (validationKey !== lastValidationKey) {
-    touched = false;
-    lastValidationKey = validationKey;
+  interface Props {
+    label?: string;
+    value?: number | null;
+    min?: number;
+    max?: number;
+    step?: number;
+    placeholder?: string;
+    error?: string;
+    help?: string;
+    yangType?: string;
+    required?: boolean;
+    disabled?: boolean;
+    validationKey?: number;
+    onchange?: (next: number | null) => void;
+    ontouch?: () => void;
   }
 
-  $: visibleError = touched ? error : '';
-  $: defaultHelp = help || (min !== undefined && max !== undefined ? `Range: ${min} — ${max}` : '');
-  $: metaText = visibleError || defaultHelp || '\u00A0';
+  let {
+    label = '',
+    value = null,
+    min,
+    max,
+    step = 1,
+    placeholder = '',
+    error = '',
+    help = '',
+    yangType = '',
+    required = false,
+    disabled = false,
+    validationKey = 0,
+    onchange,
+    ontouch
+  }: Props = $props();
+
+  let touched = $state(false);
+
+  $effect(() => {
+    validationKey;
+    touched = false;
+  });
+
+  let visibleError = $derived(touched ? error : '');
+  let defaultHelp = $derived(help || (min !== undefined && max !== undefined ? `Range: ${min} — ${max}` : ''));
+  let metaText = $derived(visibleError || defaultHelp || '\u00A0');
 </script>
 
 <label class="field">
@@ -49,18 +65,18 @@
     {step}
     {placeholder}
     {disabled}
-    on:input={(event) => {
+    oninput={(event) => {
       const next = (event.currentTarget as HTMLInputElement).value;
       if (next === '') {
-        dispatch('change', null);
+        onchange?.(null);
         return;
       }
       const parsed = Number(next);
-      dispatch('change', Number.isFinite(parsed) ? parsed : null);
+      onchange?.(Number.isFinite(parsed) ? parsed : null);
     }}
-    on:blur={() => {
+    onblur={() => {
       touched = true;
-      dispatch('touch');
+      ontouch?.();
     }}
   />
   <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>

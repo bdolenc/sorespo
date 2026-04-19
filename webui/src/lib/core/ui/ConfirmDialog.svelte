@@ -1,36 +1,48 @@
 <script lang="ts">
-  import { createEventDispatcher, tick } from 'svelte';
+  import { tick } from 'svelte';
 
-  export let open = false;
-  export let title = 'Confirm action';
-  export let message = '';
-  export let confirmLabel = 'Confirm';
-  export let cancelLabel = 'Cancel';
-  export let confirmClass = 'btn-danger';
+  interface Props {
+    open?: boolean;
+    title?: string;
+    message?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    confirmClass?: string;
+    oncancel?: () => void;
+    onconfirm?: () => void;
+  }
 
-  let cancelButton: HTMLButtonElement | null = null;
+  let {
+    open = false,
+    title = 'Confirm action',
+    message = '',
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+    confirmClass = 'btn-danger',
+    oncancel,
+    onconfirm
+  }: Props = $props();
 
-  const dispatch = createEventDispatcher<{
-    cancel: void;
-    confirm: void;
-  }>();
+  let cancelButton: HTMLButtonElement | null = $state(null);
 
   function handleKeydown(event: KeyboardEvent): void {
     if (open && event.key === 'Escape') {
-      dispatch('cancel');
+      oncancel?.();
     }
   }
 
-  $: if (open) {
-    tick().then(() => cancelButton?.focus());
-  }
+  $effect(() => {
+    if (open) {
+      tick().then(() => cancelButton?.focus());
+    }
+  });
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if open}
   <div class="confirm-dialog__overlay">
-    <button class="confirm-dialog__scrim" type="button" aria-label="Close confirmation dialog" on:click={() => dispatch('cancel')}></button>
+    <button class="confirm-dialog__scrim" type="button" aria-label="Close confirmation dialog" onclick={() => oncancel?.()}></button>
 
     <div class="confirm-dialog__panel card" role="dialog" aria-modal="true" aria-label={title}>
       <div class="confirm-dialog__body">
@@ -39,10 +51,10 @@
       </div>
 
       <div class="confirm-dialog__actions">
-        <button class="btn" type="button" bind:this={cancelButton} on:click={() => dispatch('cancel')}>
+        <button class="btn" type="button" bind:this={cancelButton} onclick={() => oncancel?.()}>
           {cancelLabel}
         </button>
-        <button class={`btn ${confirmClass}`.trim()} type="button" on:click={() => dispatch('confirm')}>
+        <button class={`btn ${confirmClass}`.trim()} type="button" onclick={() => onconfirm?.()}>
           {confirmLabel}
         </button>
       </div>

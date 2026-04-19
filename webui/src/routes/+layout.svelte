@@ -2,14 +2,18 @@
   import '../app.css';
 
   import { invalidateAll } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
+  import type { Snippet } from 'svelte';
 
   import { queuesPoll, refreshQueues } from '$lib/core/orchestron/poll-store';
   import { listServiceModuleMeta } from '$lib/core/registry/service-modules';
+  import { version } from '../../package.json';
+
+  let { children }: { children?: Snippet } = $props();
 
   const serviceModules = listServiceModuleMeta();
 
-  $: totalPendingCount = $queuesPoll.queues.length;
+  let totalPendingCount = $derived($queuesPoll.queues.length);
 
   async function handleRefresh(): Promise<void> {
     window.dispatchEvent(new CustomEvent('global-refresh'));
@@ -27,14 +31,16 @@
     }));
   }
 
-  $: currentPathname = $page.url.pathname;
-  $: yangSegments = getYangSegments(currentPathname);
-  $: pageTitle = yangSegments
-    .slice()
-    .reverse()
-    .map((seg) => seg.label)
-    .concat('StratoWeave')
-    .join(' · ');
+  let currentPathname = $derived(page.url.pathname);
+  let yangSegments = $derived(getYangSegments(currentPathname));
+  let pageTitle = $derived(
+    yangSegments
+      .slice()
+      .reverse()
+      .map((seg) => seg.label)
+      .concat('StratoWeave')
+      .join(' · ')
+  );
 </script>
 
 <svelte:head>
@@ -47,7 +53,7 @@
     <div class="sidebar-logo">
       <div class="logo-mark">SW</div>
       <span class="logo-text">StratoWeave</span>
-      <span class="logo-version">v0.9</span>
+      <span class="logo-version">v{version}</span>
     </div>
     <nav class="sidebar-nav" aria-label="Primary navigation">
       <div class="nav-section">
@@ -129,14 +135,14 @@
       </div>
 
       <div class="header-actions">
-        <button class="btn btn-ghost btn-sm" type="button" on:click={handleRefresh}>
+        <button class="btn btn-ghost btn-sm" type="button" onclick={handleRefresh}>
           ⟳ Refresh
         </button>
       </div>
     </header>
 
     <main class="app-content">
-      <slot />
+      {@render children?.()}
     </main>
   </div>
 </div>

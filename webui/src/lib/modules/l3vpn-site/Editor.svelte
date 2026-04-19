@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
   import FieldCheckbox from '$lib/core/ui/FieldCheckbox.svelte';
   import FieldNumber from '$lib/core/ui/FieldNumber.svelte';
   import FieldSelect from '$lib/core/ui/FieldSelect.svelte';
@@ -35,18 +33,22 @@
     L3VpnSiteRoutingProtocolType
   } from '$lib/modules/l3vpn-site/model';
 
-  export let draft: L3VpnSiteDraft;
-  export let errors: Record<string, string> = {};
-  export let validationKey = 0;
+  interface Props {
+    draft: L3VpnSiteDraft;
+    errors?: Record<string, string>;
+    validationKey?: number;
+    onchange?: (next: L3VpnSiteDraft) => void;
+    ontouch?: () => void;
+  }
 
-  const dispatch = createEventDispatcher<{ change: L3VpnSiteDraft; touch: void }>();
+  let { draft, errors = {}, validationKey = 0, onchange, ontouch }: Props = $props();
 
   function emit(next: L3VpnSiteDraft): void {
-    dispatch('change', next);
+    onchange?.(next);
   }
 
   function touch(): void {
-    dispatch('touch');
+    ontouch?.();
   }
 
   function replaceAt<T>(items: T[], index: number, nextItem: T): T[] {
@@ -154,26 +156,26 @@
     touch();
   }
 
-  $: locationReferenceOptions = [
+  let locationReferenceOptions = $derived([
     { value: '', label: 'Select location' },
     ...draft.locations.map((location) => ({
       value: location.locationId,
       label: location.locationId || 'Unnamed location'
     }))
-  ];
+  ]);
 
-  $: deviceReferenceOptions = [
+  let deviceReferenceOptions = $derived([
     { value: '', label: 'Select device' },
     ...draft.devices.map((device) => ({
       value: device.deviceId,
       label: device.deviceId || 'Unnamed device'
     }))
-  ];
+  ]);
 
-  $: deviceManagementAddressFamilyOptions = [
+  let deviceManagementAddressFamilyOptions = $derived([
     { value: '', label: 'No management address' },
     ...L3VPN_SITE_ADDRESS_FAMILY_OPTIONS
-  ];
+  ]);
 </script>
 
 <div class="editor">
@@ -192,8 +194,8 @@
         placeholder="e.g., SITE-1"
         yangType="svc-id (key)"
         mono={true}
-        on:change={(event) => patch({ siteId: event.detail })}
-        on:touch={touch}
+        onchange={(value) => patch({ siteId: value })}
+        ontouch={touch}
       />
       <FieldSelect
         label="Management type"
@@ -203,8 +205,8 @@
         error={errorFor('managementType')}
         {validationKey}
         yangType="identityref"
-        on:change={(event) => patch({ managementType: event.detail as L3VpnSiteDraft['managementType'] })}
-        on:touch={touch}
+        onchange={(value) => patch({ managementType: value as L3VpnSiteDraft['managementType'] })}
+        ontouch={touch}
       />
     </div>
   </Section>
@@ -221,10 +223,10 @@
       addLabel="Add location"
       emptyLabel="No locations configured."
       getItemLabel={(item, index) => item.locationId || `Location ${index + 1}`}
-      on:add={() => patch({ locations: [...draft.locations, createL3VpnSiteLocationDraft()] })}
-      on:remove={(event) => patch({ locations: removeAt(draft.locations, event.detail) })}
+      onadd={() => patch({ locations: [...draft.locations, createL3VpnSiteLocationDraft()] })}
+      onremove={(index) => patch({ locations: removeAt(draft.locations, index) })}
     >
-      <svelte:fragment slot="item" let:item let:index>
+      {#snippet row(item, index)}
         <div class="editor__grid editor__grid--2col">
           <FieldText
             label="Location ID"
@@ -235,8 +237,8 @@
             placeholder="e.g., MAIN"
             yangType="svc-id"
             mono={true}
-            on:change={(event) => updateLocation(index, { locationId: event.detail })}
-            on:touch={touch}
+            onchange={(value) => updateLocation(index, { locationId: value })}
+            ontouch={touch}
           />
           <FieldText
             label="Country code"
@@ -247,8 +249,8 @@
             yangType="string"
             help="ISO ALPHA-2 country code."
             mono={true}
-            on:change={(event) => updateLocation(index, { countryCode: event.detail.toUpperCase() })}
-            on:touch={touch}
+            onchange={(value) => updateLocation(index, { countryCode: value.toUpperCase() })}
+            ontouch={touch}
           />
           <FieldText
             label="Address"
@@ -257,8 +259,8 @@
             {validationKey}
             placeholder="Street and number"
             yangType="string"
-            on:change={(event) => updateLocation(index, { address: event.detail })}
-            on:touch={touch}
+            onchange={(value) => updateLocation(index, { address: value })}
+            ontouch={touch}
           />
           <FieldText
             label="Postal code"
@@ -267,8 +269,8 @@
             {validationKey}
             placeholder="e.g., 1000"
             yangType="string"
-            on:change={(event) => updateLocation(index, { postalCode: event.detail })}
-            on:touch={touch}
+            onchange={(value) => updateLocation(index, { postalCode: value })}
+            ontouch={touch}
           />
           <FieldText
             label="State or region"
@@ -277,8 +279,8 @@
             {validationKey}
             placeholder="Optional region"
             yangType="string"
-            on:change={(event) => updateLocation(index, { state: event.detail })}
-            on:touch={touch}
+            onchange={(value) => updateLocation(index, { state: value })}
+            ontouch={touch}
           />
           <FieldText
             label="City"
@@ -287,11 +289,11 @@
             {validationKey}
             placeholder="e.g., Ljubljana"
             yangType="string"
-            on:change={(event) => updateLocation(index, { city: event.detail })}
-            on:touch={touch}
+            onchange={(value) => updateLocation(index, { city: value })}
+            ontouch={touch}
           />
         </div>
-      </svelte:fragment>
+      {/snippet}
     </ListEditor>
   </Section>
 
@@ -308,10 +310,10 @@
         addLabel="Add device"
         emptyLabel="No devices configured."
         getItemLabel={(item, index) => item.deviceId || `Device ${index + 1}`}
-        on:add={() => patch({ devices: [...draft.devices, createL3VpnSiteDeviceDraft()] })}
-        on:remove={(event) => patch({ devices: removeAt(draft.devices, event.detail) })}
+        onadd={() => patch({ devices: [...draft.devices, createL3VpnSiteDeviceDraft()] })}
+        onremove={(index) => patch({ devices: removeAt(draft.devices, index) })}
       >
-        <svelte:fragment slot="item" let:item let:index>
+        {#snippet row(item, index)}
           <div class="editor__grid editor__grid--2col">
             <FieldText
               label="Device ID"
@@ -322,8 +324,8 @@
               placeholder="e.g., CE-1"
               yangType="svc-id"
               mono={true}
-              on:change={(event) => updateDevice(index, { deviceId: event.detail })}
-              on:touch={touch}
+              onchange={(value) => updateDevice(index, { deviceId: value })}
+              ontouch={touch}
             />
             <FieldSelect
               label="Location"
@@ -333,8 +335,8 @@
               error={errorFor(`devices.${index}.location`)}
               {validationKey}
               yangType="leafref"
-              on:change={(event) => updateDevice(index, { location: event.detail })}
-              on:touch={touch}
+              onchange={(value) => updateDevice(index, { location: value })}
+              ontouch={touch}
             />
             {#if draft.managementType === 'co-managed'}
               <FieldSelect
@@ -344,11 +346,11 @@
                 error={errorFor(`devices.${index}.managementAddressFamily`)}
                 {validationKey}
                 yangType="address-family"
-                on:change={(event) =>
+                onchange={(value) =>
                   updateDevice(index, {
-                    managementAddressFamily: event.detail as L3VpnSiteDeviceDraft['managementAddressFamily']
+                    managementAddressFamily: value as L3VpnSiteDeviceDraft['managementAddressFamily']
                   })}
-                on:touch={touch}
+                ontouch={touch}
               />
               <FieldText
                 label="Management address"
@@ -358,12 +360,12 @@
                 placeholder="e.g., 192.0.2.10"
                 yangType="inet:ip-address"
                 mono={true}
-                on:change={(event) => updateDevice(index, { managementAddress: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateDevice(index, { managementAddress: value })}
+                ontouch={touch}
               />
             {/if}
           </div>
-        </svelte:fragment>
+        {/snippet}
       </ListEditor>
 
       {#if errorFor('devices')}
@@ -384,10 +386,10 @@
       addLabel="Add access"
       emptyLabel="No accesses configured."
       getItemLabel={(item, index) => item.siteNetworkAccessId || `Access ${index + 1}`}
-      on:add={() => patch({ accesses: [...draft.accesses, createL3VpnSiteAccessDraft()] })}
-      on:remove={(event) => patch({ accesses: removeAt(draft.accesses, event.detail) })}
+      onadd={() => patch({ accesses: [...draft.accesses, createL3VpnSiteAccessDraft()] })}
+      onremove={(index) => patch({ accesses: removeAt(draft.accesses, index) })}
     >
-      <svelte:fragment slot="item" let:item let:index>
+      {#snippet row(item, index)}
         <div class="editor__grid">
           <div class="editor__grid editor__grid--2col">
             <FieldText
@@ -399,8 +401,8 @@
               placeholder="e.g., SNA-1-1"
               yangType="svc-id"
               mono={true}
-              on:change={(event) => updateAccess(index, { siteNetworkAccessId: event.detail })}
-              on:touch={touch}
+              onchange={(value) => updateAccess(index, { siteNetworkAccessId: value })}
+              ontouch={touch}
             />
             <FieldSelect
               label="Access type"
@@ -409,11 +411,11 @@
               error={errorFor(`accesses.${index}.siteNetworkAccessType`)}
               {validationKey}
               yangType="identityref"
-              on:change={(event) =>
+              onchange={(value) =>
                 updateAccess(index, {
-                  siteNetworkAccessType: event.detail as L3VpnSiteAccessDraft['siteNetworkAccessType']
+                  siteNetworkAccessType: value as L3VpnSiteAccessDraft['siteNetworkAccessType']
                 })}
-              on:touch={touch}
+              ontouch={touch}
             />
             {#if draft.managementType === 'customer-managed'}
               <FieldSelect
@@ -424,8 +426,8 @@
                 error={errorFor(`accesses.${index}.locationReference`)}
                 {validationKey}
                 yangType="leafref"
-                on:change={(event) => updateAccess(index, { locationReference: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { locationReference: value })}
+                ontouch={touch}
               />
             {:else}
               <FieldSelect
@@ -436,8 +438,8 @@
                 error={errorFor(`accesses.${index}.deviceReference`)}
                 {validationKey}
                 yangType="leafref"
-                on:change={(event) => updateAccess(index, { deviceReference: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { deviceReference: value })}
+                ontouch={touch}
               />
             {/if}
             <FieldText
@@ -449,8 +451,8 @@
               placeholder="e.g., acme-65501"
               yangType="leafref"
               mono={true}
-              on:change={(event) => updateAccess(index, { vpnId: event.detail })}
-              on:touch={touch}
+              onchange={(value) => updateAccess(index, { vpnId: value })}
+              ontouch={touch}
             />
           </div>
 
@@ -470,8 +472,8 @@
                 yangType="string"
                 help="Rendered as the raw YANG string used by the sample service."
                 mono={true}
-                on:change={(event) => updateAccess(index, { inputBandwidth: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { inputBandwidth: value })}
+                ontouch={touch}
               />
               <FieldText
                 label="Output bandwidth"
@@ -481,8 +483,8 @@
                 placeholder="1000000000"
                 yangType="string"
                 mono={true}
-                on:change={(event) => updateAccess(index, { outputBandwidth: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { outputBandwidth: value })}
+                ontouch={touch}
               />
               <FieldNumber
                 label="MTU"
@@ -492,8 +494,8 @@
                 min={1}
                 max={65535}
                 yangType="uint16"
-                on:change={(event) => updateAccess(index, { mtu: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { mtu: value })}
+                ontouch={touch}
               />
             </div>
           </div>
@@ -513,8 +515,8 @@
                 placeholder="e.g., AMS-CORE-1,eth3.100"
                 yangType="string"
                 mono={true}
-                on:change={(event) => updateAccess(index, { bearerReference: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { bearerReference: value })}
+                ontouch={touch}
               />
               <FieldText
                 label="Provider IPv4 address"
@@ -524,8 +526,8 @@
                 placeholder="e.g., 10.201.1.1"
                 yangType="inet:ipv4-address"
                 mono={true}
-                on:change={(event) => updateAccess(index, { providerAddress: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { providerAddress: value })}
+                ontouch={touch}
               />
               <FieldText
                 label="Customer IPv4 address"
@@ -535,8 +537,8 @@
                 placeholder="e.g., 10.201.1.2"
                 yangType="inet:ipv4-address"
                 mono={true}
-                on:change={(event) => updateAccess(index, { customerAddress: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { customerAddress: value })}
+                ontouch={touch}
               />
               <FieldNumber
                 label="Prefix length"
@@ -546,8 +548,8 @@
                 min={0}
                 max={32}
                 yangType="uint8"
-                on:change={(event) => updateAccess(index, { prefixLength: event.detail })}
-                on:touch={touch}
+                onchange={(value) => updateAccess(index, { prefixLength: value })}
+                ontouch={touch}
               />
             </div>
           </div>
@@ -566,16 +568,16 @@
               emptyLabel="No routing protocols configured."
               getItemLabel={(protocol, protocolIndex) =>
                 formatL3VpnSiteRoutingProtocolType(protocol.type) || `Protocol ${protocolIndex + 1}`}
-              on:add={() =>
+              onadd={() =>
                 updateAccess(index, {
                   routingProtocols: [...item.routingProtocols, createL3VpnSiteRoutingProtocolDraft()]
                 })}
-              on:remove={(event) =>
+              onremove={(protocolIndex) =>
                 updateAccess(index, {
-                  routingProtocols: removeAt(item.routingProtocols, event.detail)
+                  routingProtocols: removeAt(item.routingProtocols, protocolIndex)
                 })}
             >
-              <svelte:fragment slot="item" let:item={protocol} let:index={protocolIndex}>
+              {#snippet row(protocol, protocolIndex)}
                 <div class="editor__grid">
                   <div class="editor__grid editor__grid--2col">
                     <FieldSelect
@@ -585,9 +587,9 @@
                       error={errorFor(`accesses.${index}.routingProtocols.${protocolIndex}.type`)}
                       {validationKey}
                       yangType="identityref"
-                      on:change={(event) =>
-                        updateRoutingProtocol(index, protocolIndex, resetRoutingProtocol(event.detail as L3VpnSiteRoutingProtocolType))}
-                      on:touch={touch}
+                      onchange={(value) =>
+                        updateRoutingProtocol(index, protocolIndex, resetRoutingProtocol(value as L3VpnSiteRoutingProtocolType))}
+                      ontouch={touch}
                     />
 
                     {#if protocol.type === 'bgp'}
@@ -600,11 +602,11 @@
                         min={1}
                         max={4294967295}
                         yangType="uint32"
-                        on:change={(event) =>
+                        onchange={(value) =>
                           updateRoutingProtocol(index, protocolIndex, {
-                            bgpAutonomousSystem: event.detail
+                            bgpAutonomousSystem: value
                           })}
-                        on:touch={touch}
+                        ontouch={touch}
                       />
                     {:else if protocol.type === 'ospf'}
                       <FieldText
@@ -616,11 +618,11 @@
                         placeholder="e.g., 0.0.0.0"
                         yangType="yang:dotted-quad"
                         mono={true}
-                        on:change={(event) =>
+                        onchange={(value) =>
                           updateRoutingProtocol(index, protocolIndex, {
-                            ospfAreaAddress: event.detail
+                            ospfAreaAddress: value
                           })}
-                        on:touch={touch}
+                        ontouch={touch}
                       />
                     {/if}
                   </div>
@@ -635,11 +637,11 @@
                         min={0}
                         max={65535}
                         yangType="uint16"
-                        on:change={(event) =>
+                        onchange={(value) =>
                           updateRoutingProtocol(index, protocolIndex, {
-                            ospfMetric: event.detail
+                            ospfMetric: value
                           })}
-                        on:touch={touch}
+                        ontouch={touch}
                       />
                     </div>
                   {/if}
@@ -656,7 +658,7 @@
                           <FieldCheckbox
                             label={familyOption.label}
                             checked={protocol.addressFamilies.includes(familyOption.value as L3VpnSiteAddressFamily)}
-                            on:change={() =>
+                            onchange={() =>
                               toggleAddressFamily(index, protocolIndex, familyOption.value as L3VpnSiteAddressFamily)}
                           />
                         {/each}
@@ -684,16 +686,16 @@
                         addLabel="Add IPv4 prefix"
                         emptyLabel="No IPv4 LAN prefixes configured."
                         getItemLabel={(prefix, prefixIndex) => prefix.lan || `IPv4 prefix ${prefixIndex + 1}`}
-                        on:add={() =>
+                        onadd={() =>
                           updateRoutingProtocol(index, protocolIndex, {
                             staticIpv4LanPrefixes: [...protocol.staticIpv4LanPrefixes, createL3VpnSiteLanPrefixDraft()]
                           })}
-                        on:remove={(event) =>
+                        onremove={(prefixIndex) =>
                           updateRoutingProtocol(index, protocolIndex, {
-                            staticIpv4LanPrefixes: removeAt(protocol.staticIpv4LanPrefixes, event.detail)
+                            staticIpv4LanPrefixes: removeAt(protocol.staticIpv4LanPrefixes, prefixIndex)
                           })}
                       >
-                        <svelte:fragment slot="item" let:item={prefix} let:index={prefixIndex}>
+                        {#snippet row(prefix, prefixIndex)}
                           <div class="editor__grid editor__grid--3col">
                             <FieldText
                               label="LAN prefix"
@@ -703,11 +705,11 @@
                               placeholder="e.g., 192.0.2.0/24"
                               yangType="inet:ipv4-prefix"
                               mono={true}
-                              on:change={(event) =>
+                              onchange={(value) =>
                                 updateLanPrefix(index, protocolIndex, 'staticIpv4LanPrefixes', prefixIndex, {
-                                  lan: event.detail
+                                  lan: value
                                 })}
-                              on:touch={touch}
+                              ontouch={touch}
                             />
                             <FieldText
                               label="LAN tag"
@@ -716,11 +718,11 @@
                               {validationKey}
                               placeholder="Optional policy tag"
                               yangType="string"
-                              on:change={(event) =>
+                              onchange={(value) =>
                                 updateLanPrefix(index, protocolIndex, 'staticIpv4LanPrefixes', prefixIndex, {
-                                  lanTag: event.detail
+                                  lanTag: value
                                 })}
-                              on:touch={touch}
+                              ontouch={touch}
                             />
                             <FieldText
                               label="Next hop"
@@ -730,14 +732,14 @@
                               placeholder="e.g., 10.201.1.2"
                               yangType="inet:ipv4-address"
                               mono={true}
-                              on:change={(event) =>
+                              onchange={(value) =>
                                 updateLanPrefix(index, protocolIndex, 'staticIpv4LanPrefixes', prefixIndex, {
-                                  nextHop: event.detail
+                                  nextHop: value
                                 })}
-                              on:touch={touch}
+                              ontouch={touch}
                             />
                           </div>
-                        </svelte:fragment>
+                        {/snippet}
                       </ListEditor>
                     </div>
 
@@ -754,16 +756,16 @@
                         addLabel="Add IPv6 prefix"
                         emptyLabel="No IPv6 LAN prefixes configured."
                         getItemLabel={(prefix, prefixIndex) => prefix.lan || `IPv6 prefix ${prefixIndex + 1}`}
-                        on:add={() =>
+                        onadd={() =>
                           updateRoutingProtocol(index, protocolIndex, {
                             staticIpv6LanPrefixes: [...protocol.staticIpv6LanPrefixes, createL3VpnSiteLanPrefixDraft()]
                           })}
-                        on:remove={(event) =>
+                        onremove={(prefixIndex) =>
                           updateRoutingProtocol(index, protocolIndex, {
-                            staticIpv6LanPrefixes: removeAt(protocol.staticIpv6LanPrefixes, event.detail)
+                            staticIpv6LanPrefixes: removeAt(protocol.staticIpv6LanPrefixes, prefixIndex)
                           })}
                       >
-                        <svelte:fragment slot="item" let:item={prefix} let:index={prefixIndex}>
+                        {#snippet row(prefix, prefixIndex)}
                           <div class="editor__grid editor__grid--3col">
                             <FieldText
                               label="LAN prefix"
@@ -773,11 +775,11 @@
                               placeholder="e.g., 2001:db8::/64"
                               yangType="inet:ipv6-prefix"
                               mono={true}
-                              on:change={(event) =>
+                              onchange={(value) =>
                                 updateLanPrefix(index, protocolIndex, 'staticIpv6LanPrefixes', prefixIndex, {
-                                  lan: event.detail
+                                  lan: value
                                 })}
-                              on:touch={touch}
+                              ontouch={touch}
                             />
                             <FieldText
                               label="LAN tag"
@@ -786,11 +788,11 @@
                               {validationKey}
                               placeholder="Optional policy tag"
                               yangType="string"
-                              on:change={(event) =>
+                              onchange={(value) =>
                                 updateLanPrefix(index, protocolIndex, 'staticIpv6LanPrefixes', prefixIndex, {
-                                  lanTag: event.detail
+                                  lanTag: value
                                 })}
-                              on:touch={touch}
+                              ontouch={touch}
                             />
                             <FieldText
                               label="Next hop"
@@ -800,23 +802,23 @@
                               placeholder="e.g., 2001:db8::2"
                               yangType="inet:ipv6-address"
                               mono={true}
-                              on:change={(event) =>
+                              onchange={(value) =>
                                 updateLanPrefix(index, protocolIndex, 'staticIpv6LanPrefixes', prefixIndex, {
-                                  nextHop: event.detail
+                                  nextHop: value
                                 })}
-                              on:touch={touch}
+                              ontouch={touch}
                             />
                           </div>
-                        </svelte:fragment>
+                        {/snippet}
                       </ListEditor>
                     </div>
                   {/if}
                 </div>
-              </svelte:fragment>
+              {/snippet}
             </ListEditor>
           </div>
         </div>
-      </svelte:fragment>
+      {/snippet}
     </ListEditor>
   </Section>
 </div>

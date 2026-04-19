@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
@@ -8,34 +8,35 @@
   import { getListEntryPath, restconfPutJson } from '$lib/core/restconf/client';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
-  export let data: { moduleId: string };
+  let { data }: { data: { moduleId: string } } = $props();
 
-  let serviceModule = resolveServiceModule(data.moduleId);
-  let store = createDraftStore(serviceModule.createDraft(), serviceModule.validate);
-  let lastModuleId = data.moduleId;
+  let serviceModule = $state(untrack(() => resolveServiceModule(data.moduleId)));
+  let store = $state(untrack(() => createDraftStore(serviceModule.createDraft(), serviceModule.validate)));
+  let lastModuleId = $state(untrack(() => data.moduleId));
 
-  let draft = serviceModule.createDraft();
-  let validation = serviceModule.validate(draft);
-  let dirty = false;
-  let saving = false;
-  let validationActive = false;
-  let validationKey = 0;
-  let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
+  let draft = $state(untrack(() => serviceModule.createDraft()));
+  let validation = $state(untrack(() => serviceModule.validate(draft)));
+  let dirty = $state(false);
+  let saving = $state(false);
+  let validationActive = $state(false);
+  let validationKey = $state(0);
+  let statusMessage: { type: 'success' | 'error'; text: string } | null = $state(null);
 
   let unsubscribeDraft = () => {};
   let unsubscribeValidation = () => {};
   let unsubscribeDirty = () => {};
 
-  bindStore(store);
+  untrack(() => bindStore(store));
 
   onDestroy(() => {
     unbindStore();
   });
 
-  $: if (data.moduleId !== lastModuleId) {
+  $effect(() => {
+    if (data.moduleId === lastModuleId) return;
     lastModuleId = data.moduleId;
     initializeModule(data.moduleId);
-  }
+  });
 
   function resolveServiceModule(moduleId: string) {
     const module = getServiceModule(moduleId);
@@ -97,11 +98,7 @@
       await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
       store.markSaved(snapshot);
 
-      const destination = serviceModule.list
-        ? `/services/${serviceModule.id}`
-        : `/services/${serviceModule.id}/${encodeURIComponent(key)}`;
-
-      await goto(destination, {
+      await goto(`/services/${serviceModule.id}/${encodeURIComponent(key)}`, {
         invalidateAll: true
       });
     } catch (saveError) {
@@ -135,9 +132,9 @@
     {validationKey}
     saveDisabled={!validation.ok || !getDraftKey(serviceModule, draft)}
     {statusMessage}
-    on:change={(event) => store.set(event.detail)}
-    on:touch={() => (validationActive = true)}
-    on:reset={handleReset}
-    on:save={handleSave}
+    onchange={(next) => store.set(next)}
+    ontouch={() => (validationActive = true)}
+    onreset={handleReset}
+    onsave={handleSave}
   />
 {/if}

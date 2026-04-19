@@ -23,7 +23,13 @@ export interface ServiceModule<TDraft = unknown> {
   validate(draft: TDraft): ValidationResult;
   serialize(draft: TDraft): unknown;
   getKey?(draft: TDraft): string;
-  Editor: Component<{ draft: TDraft; errors: Record<string, string>; validationKey?: number }>;
+  Editor: Component<{
+    draft: TDraft;
+    errors: Record<string, string>;
+    validationKey?: number;
+    onchange?: (next: TDraft) => void;
+    ontouch?: () => void;
+  }>;
   Summary?: Component<{ draft: TDraft }>;
   Preview?: Component<{ draft: TDraft; payload: unknown }>;
 }

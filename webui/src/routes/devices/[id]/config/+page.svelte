@@ -2,49 +2,30 @@
   import { browser } from '$app/environment';
 
   import {
-    fetchDevice,
     fetchDeviceRunningConfig,
     fetchDeviceTargetConfig,
     type DeviceInfo
   } from '$lib/core/orchestron/client';
 
-  export let data: { deviceId: string };
+  let { data }: { data: { deviceId: string; device: DeviceInfo | null; loadError: string } } = $props();
 
-  let deviceId = data.deviceId;
-  let lastLoadedId = '';
+  let lastLoadedId = $state('');
 
-  let device: DeviceInfo | null = null;
-  let configViewMode: 'running' | 'target' = 'running';
-  let configFormat = 'xml';
-  let configData = '';
-  let loadingConfig = false;
-  let loading = true;
-  let error = '';
+  let configViewMode: 'running' | 'target' = $state('running');
+  let configFormat = $state('xml');
+  let configData = $state('');
+  let loadingConfig = $state(false);
 
-  $: deviceId = data.deviceId;
-  $: if (browser && deviceId && deviceId !== lastLoadedId) {
-    lastLoadedId = deviceId;
-    loadDevice();
-  }
+  let device = $derived(data.device);
+  let deviceId = $derived(data.deviceId);
+  let error = $derived(data.loadError);
 
-  async function loadDevice(): Promise<void> {
-    const requestId = data.deviceId;
-    try {
-      loading = true;
-      error = '';
-      const info = await fetchDevice(requestId);
-      if (requestId !== data.deviceId) return;
-      device = info;
-      await loadConfigView('running', requestId);
-    } catch (loadError) {
-      if (requestId !== data.deviceId) return;
-      error = loadError instanceof Error ? loadError.message : 'Failed to load device.';
-    } finally {
-      if (requestId === data.deviceId) {
-        loading = false;
-      }
+  $effect(() => {
+    if (browser && deviceId && deviceId !== lastLoadedId) {
+      lastLoadedId = deviceId;
+      loadConfigView('running', deviceId);
     }
-  }
+  });
 
   async function loadConfigView(mode: 'running' | 'target', requestId = data.deviceId): Promise<void> {
     try {
@@ -88,9 +69,7 @@
   </div>
 </div>
 
-{#if loading}
-  <div class="loading-state">Loading device...</div>
-{:else if error}
+{#if error}
   <div class="error-state">{error}</div>
 {:else if device}
   <div class="card config-page">
@@ -100,18 +79,18 @@
         <div class="config-page__control-group">
           <span>View</span>
           <div class="segmented">
-            <button class:active={configViewMode === 'running'} type="button" on:click={() => loadConfigView('running')}>Running</button>
-            <button class:active={configViewMode === 'target'} type="button" on:click={() => loadConfigView('target')}>Target</button>
+            <button class:active={configViewMode === 'running'} type="button" onclick={() => loadConfigView('running')}>Running</button>
+            <button class:active={configViewMode === 'target'} type="button" onclick={() => loadConfigView('target')}>Target</button>
           </div>
         </div>
 
         <div class="config-page__control-group">
           <span>Format</span>
           <div class="segmented">
-            <button class:active={configFormat === 'json'} type="button" on:click={() => changeFormat('json')}>JSON</button>
-            <button class:active={configFormat === 'xml'} type="button" on:click={() => changeFormat('xml')}>XML</button>
-            <button class:active={configFormat === 'gdata'} type="button" on:click={() => changeFormat('gdata')}>GData</button>
-            <button class:active={configFormat === 'adata'} type="button" on:click={() => changeFormat('adata')}>AData</button>
+            <button class:active={configFormat === 'json'} type="button" onclick={() => changeFormat('json')}>JSON</button>
+            <button class:active={configFormat === 'xml'} type="button" onclick={() => changeFormat('xml')}>XML</button>
+            <button class:active={configFormat === 'gdata'} type="button" onclick={() => changeFormat('gdata')}>GData</button>
+            <button class:active={configFormat === 'adata'} type="button" onclick={() => changeFormat('adata')}>AData</button>
           </div>
         </div>
       </div>

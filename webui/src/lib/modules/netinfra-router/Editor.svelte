@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
   import FieldCheckbox from '$lib/core/ui/FieldCheckbox.svelte';
   import FieldNumber from '$lib/core/ui/FieldNumber.svelte';
   import FieldText from '$lib/core/ui/FieldText.svelte';
@@ -8,18 +6,18 @@
 
   import type { NetinfraRouterDraft } from '$lib/modules/netinfra-router/model';
 
-  export let draft: NetinfraRouterDraft;
-  export let errors: Record<string, string> = {};
-  export let validationKey = 0;
-
-  const dispatch = createEventDispatcher<{ change: NetinfraRouterDraft; touch: void }>();
-
-  function emit(next: NetinfraRouterDraft): void {
-    dispatch('change', next);
+  interface Props {
+    draft: NetinfraRouterDraft;
+    errors?: Record<string, string>;
+    validationKey?: number;
+    onchange?: (next: NetinfraRouterDraft) => void;
+    ontouch?: () => void;
   }
 
+  let { draft, errors = {}, validationKey = 0, onchange, ontouch }: Props = $props();
+
   function patch(values: Partial<NetinfraRouterDraft>): void {
-    emit({
+    onchange?.({
       ...draft,
       ...values,
       featureFlags: {
@@ -42,8 +40,8 @@
         placeholder="e.g., pe-ams-01"
         yangType="string (key)"
         mono={true}
-        on:change={(event) => patch({ name: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ name: value })}
+        ontouch={() => ontouch?.()}
       />
       <FieldNumber
         label="Router ID"
@@ -54,8 +52,8 @@
         min={1}
         max={4294967295}
         yangType="uint32"
-        on:change={(event) => patch({ id: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ id: value })}
+        ontouch={() => ontouch?.()}
       />
       <FieldText
         label="Platform type"
@@ -65,8 +63,8 @@
         {validationKey}
         placeholder="e.g., SR Linux, cRPD, Arista EOS"
         yangType="string"
-        on:change={(event) => patch({ type: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ type: value })}
+        ontouch={() => ontouch?.()}
       />
       <FieldNumber
         label="ASN"
@@ -77,8 +75,8 @@
         min={1}
         max={4294967295}
         yangType="inet:as-number"
-        on:change={(event) => patch({ asn: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ asn: value })}
+        ontouch={() => ontouch?.()}
       />
     </div>
   </Section>
@@ -93,8 +91,8 @@
         placeholder="e.g., PE, P, RR"
         yangType="string"
         help="Optional role metadata used by the service model."
-        on:change={(event) => patch({ role: event.detail })}
-        on:touch={() => dispatch('touch')}
+        onchange={(value) => patch({ role: value })}
+        ontouch={() => ontouch?.()}
       />
 
       <div class="editor__toggles">
@@ -102,23 +100,21 @@
           label="Mock router"
           checked={draft.mock}
           help="Marks this entry as a mock target in the netinfra model."
-          on:change={(event) => patch({ mock: event.detail })}
+          onchange={(mock) => patch({ mock })}
         />
         <FieldCheckbox
           label="Approval required"
           checked={draft.approvalRequired}
           help="Requires human approval for device queue application."
-          on:change={(event) => patch({ approvalRequired: event.detail })}
+          onchange={(approvalRequired) => patch({ approvalRequired })}
         />
         <FieldCheckbox
           label="Runtime schema fetch"
           checked={draft.featureFlags.runtimeSchemaFetch}
           help="Enables the feature-flags/runtime-schema-fetch leaf."
-          on:change={(event) =>
+          onchange={(runtimeSchemaFetch) =>
             patch({
-              featureFlags: {
-                runtimeSchemaFetch: event.detail
-              }
+              featureFlags: { runtimeSchemaFetch }
             })}
         />
       </div>

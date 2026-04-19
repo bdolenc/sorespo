@@ -1,33 +1,46 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
   type FieldOption = {
     value: string;
     label: string;
   };
 
-  export let label = '';
-  export let value = '';
-  export let options: FieldOption[] = [];
-  export let error = '';
-  export let help = '';
-  export let yangType = '';
-  export let required = false;
-  export let disabled = false;
-  export let validationKey = 0;
-
-  const dispatch = createEventDispatcher<{ change: string; touch: void }>();
-
-  let touched = false;
-  let lastValidationKey = validationKey;
-
-  $: if (validationKey !== lastValidationKey) {
-    touched = false;
-    lastValidationKey = validationKey;
+  interface Props {
+    label?: string;
+    value?: string;
+    options?: FieldOption[];
+    error?: string;
+    help?: string;
+    yangType?: string;
+    required?: boolean;
+    disabled?: boolean;
+    validationKey?: number;
+    onchange?: (next: string) => void;
+    ontouch?: () => void;
   }
 
-  $: visibleError = touched ? error : '';
-  $: metaText = visibleError || help || '\u00A0';
+  let {
+    label = '',
+    value = '',
+    options = [],
+    error = '',
+    help = '',
+    yangType = '',
+    required = false,
+    disabled = false,
+    validationKey = 0,
+    onchange,
+    ontouch
+  }: Props = $props();
+
+  let touched = $state(false);
+
+  $effect(() => {
+    validationKey;
+    touched = false;
+  });
+
+  let visibleError = $derived(touched ? error : '');
+  let metaText = $derived(visibleError || help || '\u00A0');
 </script>
 
 <label class="field">
@@ -45,10 +58,10 @@
     aria-invalid={visibleError ? 'true' : undefined}
     {value}
     {disabled}
-    on:change={(event) => dispatch('change', (event.currentTarget as HTMLSelectElement).value)}
-    on:blur={() => {
+    onchange={(event) => onchange?.((event.currentTarget as HTMLSelectElement).value)}
+    onblur={() => {
       touched = true;
-      dispatch('touch');
+      ontouch?.();
     }}
   >
     {#each options as option}
