@@ -132,17 +132,23 @@
         payload
       );
       store.markSaved(snapshot);
-
-      await goto(`/services/${serviceModule.id}/${encodeURIComponent(key)}`, {
-        invalidateAll: true
-      });
     } catch (saveError) {
       statusMessage = {
         type: 'error',
         text: saveError instanceof Error ? saveError.message : 'Failed to save service draft.'
       };
+      return;
     } finally {
       saving = false;
+    }
+
+    try {
+      await goto(`/services/${serviceModule.id}/${encodeURIComponent(key)}`);
+    } catch (navError) {
+      statusMessage = {
+        type: 'error',
+        text: `Saved ${key}, but navigation failed: ${navError instanceof Error ? navError.message : 'unknown'}`
+      };
     }
   }
 
