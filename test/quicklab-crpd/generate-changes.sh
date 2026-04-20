@@ -1,15 +1,9 @@
 #!/bin/bash
 # Generate config changes for testing the approval queue
 
-# Get the Orchestron port
-OTRON_PORT=$(docker inspect -f '{{(index (index .NetworkSettings.Ports "80/tcp") 0).HostPort}}' sorespo-quicklab-crpd-otron)
+OTRON_HTTP_ORIGIN="${OTRON_HTTP_ORIGIN:-http://localhost:15000}"
 
-if [ -z "$OTRON_PORT" ]; then
-    echo "Error: Could not find Orchestron container port"
-    exit 1
-fi
-
-echo "Using Orchestron at port: $OTRON_PORT"
+echo "Using Orchestron at: $OTRON_HTTP_ORIGIN"
 
 # Function to send config
 send_config() {
@@ -33,7 +27,7 @@ EOF
         -H "Content-Type: application/yang-data+xml" \
         -H "Async: true" \
         -d @/tmp/temp-config.xml \
-        "http://localhost:${OTRON_PORT}/restconf/data"
+        "${OTRON_HTTP_ORIGIN}/restconf/data"
     echo ""
 }
 

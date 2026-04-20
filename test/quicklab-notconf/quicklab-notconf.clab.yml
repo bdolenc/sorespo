@@ -50,5 +50,5 @@ topology:
       kind: linux
       image: sorespo-otron-base
       ports:
-        - "80/tcp"
+        - "15000:80/tcp"
         - "830/tcp"
