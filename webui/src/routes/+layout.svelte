@@ -3,8 +3,9 @@
 
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
-  import type { Snippet } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
 
+  import CommandPalette from '$lib/core/command-palette/CommandPalette.svelte';
   import { queuesPoll, refreshQueues } from '$lib/core/orchestron/poll-store';
   import { listServiceModuleMeta } from '$lib/core/registry/service-modules';
   import { version } from '../../package.json';
@@ -14,11 +15,23 @@
   const serviceModules = listServiceModuleMeta();
 
   let totalPendingCount = $derived($queuesPoll.queues.length);
+  let paletteOpen = $state(false);
 
   async function handleRefresh(): Promise<void> {
     window.dispatchEvent(new CustomEvent('global-refresh'));
     await Promise.all([refreshQueues(), invalidateAll()]);
   }
+
+  onMount(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        paletteOpen = !paletteOpen;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  });
 
   function decodePathSegment(value: string): string {
     try {
@@ -143,6 +156,9 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn btn-ghost btn-sm cmdk-trigger" type="button" onclick={() => (paletteOpen = true)} aria-label="Open command palette">
+          Search <kbd>⌘K</kbd>
+        </button>
         <button class="btn btn-ghost btn-sm" type="button" onclick={handleRefresh}>
           ⟳ Refresh
         </button>
@@ -154,6 +170,8 @@
     </main>
   </div>
 </div>
+
+<CommandPalette bind:open={paletteOpen} />
 
 <style>
   .nav-subsection {
@@ -172,5 +190,22 @@
   .nav-item--sub .nav-icon {
     width: 12px;
     font-size: 14px;
+  }
+
+  .cmdk-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cmdk-trigger kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    border: 1px solid var(--sw-border-subtle);
+    border-radius: 4px;
+    background: var(--sw-bg-deep);
+    font-family: var(--sw-font-mono);
+    font-size: 10px;
+    color: var(--sw-text-muted);
   }
 </style>
