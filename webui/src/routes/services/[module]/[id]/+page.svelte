@@ -1,59 +1,77 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { onDestroy, onMount } from 'svelte';
+  import { goto, invalidate } from '$app/navigation';
+  import { onDestroy, onMount, untrack } from 'svelte';
 
   import { createDraftStore } from '$lib/core/drafts/draft-store.svelte';
   import { getServiceModule } from '$lib/core/registry/service-modules';
-  import { getListEntryPath, restconfGetJson, restconfPutJson } from '$lib/core/restconf/client';
+  import {
+    formatServiceRouteId,
+    getDraftKey,
+    getDraftKeyLabel,
+    getDraftPathKey,
+    getRoutePathKey
+  } from '$lib/core/registry/types';
+  import { getListEntryPath, restconfDelete, restconfPutJson } from '$lib/core/restconf/client';
+  import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
-  export let data: { moduleId: string; serviceId: string };
+  let {
+    data
+  }: {
+    data: { moduleId: string; serviceId: string; draft: unknown; loadError: string };
+  } = $props();
 
-  const serviceModule = (() => {
-    const module = getServiceModule(data.moduleId);
+  let serviceModule = $state(untrack(() => resolveServiceModule(data.moduleId)));
+  let store = untrack(() => createDraftStore(data.draft, serviceModule.validate));
+  let draft = $state(untrack(() => data.draft));
+  let original = $state(untrack(() => data.draft));
+  let validation = $state(untrack(() => serviceModule.validate(data.draft)));
+  let dirty = $state(false);
+  let saving = $state(false);
+  let deleting = $state(false);
+  let validationActive = $state(false);
+  let validationKey = $state(0);
+  let confirmDeleteOpen = $state(false);
+  let statusMessage: { type: 'success' | 'error'; text: string } | null = $state(
+    untrack(() => (data.loadError ? { type: 'error', text: data.loadError } : null))
+  );
+  let lastRouteKey = $state(untrack(() => `${data.moduleId}:${data.serviceId}`));
 
-    if (!module) {
-      throw new Error(`Unknown service module: ${data.moduleId}`);
-    }
+  let unsubscribeDraft = () => {};
+  let unsubscribeOriginal = () => {};
+  let unsubscribeValidation = () => {};
+  let unsubscribeDirty = () => {};
 
-    return module;
-  })();
+  let routeKey = $derived(`${data.moduleId}:${data.serviceId}`);
+  let cloneHref = $derived(
+    `/services/${serviceModule.id}/new?clone=${encodeURIComponent(data.serviceId)}`
+  );
+  let displayServiceId = $derived(formatServiceRouteId(serviceModule, data.serviceId));
 
-  const store = createDraftStore(serviceModule.createDraft(), serviceModule.validate);
-
-  let draft = serviceModule.createDraft();
-  let validation = serviceModule.validate(draft);
-  let dirty = false;
-  let saving = false;
-  let loading = true;
-  let statusMessage: { type: 'success' | 'error'; text: string } | null = null;
-  let lastLoadedKey = '';
-
-  const unsubscribeDraft = store.draft.subscribe((value) => {
-    draft = value;
-  });
-
-  const unsubscribeValidation = store.validation.subscribe((value) => {
-    validation = value;
-  });
-
-  const unsubscribeDirty = store.dirty.subscribe((value) => {
-    dirty = value;
-  });
+  untrack(() => bindStore(store));
 
   onDestroy(() => {
-    unsubscribeDraft();
-    unsubscribeValidation();
-    unsubscribeDirty();
+    unbindStore();
   });
 
-  $: if (browser && data.serviceId && data.serviceId !== lastLoadedKey) {
-    lastLoadedKey = data.serviceId;
-    loadDraft();
-  }
+  $effect(() => {
+    if (!browser) return;
+    if (routeKey === lastRouteKey) return;
+
+    lastRouteKey = routeKey;
+    serviceModule = resolveServiceModule(data.moduleId);
+    bindStore(createDraftStore(data.draft, serviceModule.validate));
+    saving = false;
+    deleting = false;
+    validationActive = false;
+    validationKey += 1;
+    confirmDeleteOpen = false;
+    statusMessage = data.loadError ? { type: 'error', text: data.loadError } : null;
+  });
 
   onMount(() => {
-    const handleRefresh = () => loadDraft(true);
+    const handleRefresh = () => invalidate(`data:service:${data.moduleId}:${data.serviceId}`);
     window.addEventListener('global-refresh', handleRefresh);
 
     return () => {
@@ -61,37 +79,48 @@
     };
   });
 
-  async function loadDraft(silent = false): Promise<void> {
-    try {
-      if (!silent) {
-        loading = true;
-      }
+  function resolveServiceModule(moduleId: string) {
+    const module = getServiceModule(moduleId);
 
-      statusMessage = null;
-      const response = await restconfGetJson(getListEntryPath(serviceModule.restconfRoot, data.serviceId));
-      store.replace(serviceModule.parse(response));
-    } catch (loadError) {
-      statusMessage = {
-        type: 'error',
-        text: loadError instanceof Error ? loadError.message : 'Failed to load service draft.'
-      };
-    } finally {
-      loading = false;
+    if (!module) {
+      throw new Error(`Unknown service module: ${moduleId}`);
     }
+
+    return module;
   }
 
-  function getKey(): string {
-    const value = (draft as Record<string, unknown>)[serviceModule.keyParam];
-    return typeof value === 'string' ? value.trim() : value !== null && value !== undefined ? String(value) : '';
+  function unbindStore(): void {
+    unsubscribeDraft();
+    unsubscribeOriginal();
+    unsubscribeValidation();
+    unsubscribeDirty();
+  }
+
+  function bindStore(nextStore: ReturnType<typeof createDraftStore>): void {
+    unbindStore();
+
+    store = nextStore;
+    unsubscribeDraft = store.draft.subscribe((value) => {
+      draft = value;
+    });
+    unsubscribeOriginal = store.original.subscribe((value) => {
+      original = value;
+    });
+    unsubscribeValidation = store.validation.subscribe((value) => {
+      validation = value;
+    });
+    unsubscribeDirty = store.dirty.subscribe((value) => {
+      dirty = value;
+    });
   }
 
   async function handleSave(): Promise<void> {
-    const key = getKey();
+    const key = getDraftKey(serviceModule, draft);
 
     if (!key) {
       statusMessage = {
         type: 'error',
-        text: `The "${serviceModule.keyParam}" field is required before saving.`
+        text: `${getDraftKeyLabel(serviceModule)} is required before saving.`
       };
       return;
     }
@@ -99,13 +128,18 @@
     try {
       saving = true;
       statusMessage = null;
-      const payload = serviceModule.serialize(draft);
-      await restconfPutJson(getListEntryPath(serviceModule.restconfRoot, key), payload);
-      store.markSaved();
-      statusMessage = {
-        type: 'success',
-        text: `Saved ${key} successfully.`
-      };
+      const snapshot = draft;
+      const payload = serviceModule.serialize(snapshot);
+      await restconfPutJson(
+        getListEntryPath(serviceModule.restconfRoot, getDraftPathKey(serviceModule, snapshot)),
+        payload
+      );
+      store.markSaved(snapshot);
+      const successMessage = { type: 'success' as const, text: `Saved ${key} successfully.` };
+      statusMessage = successMessage;
+      setTimeout(() => {
+        if (statusMessage === successMessage) statusMessage = null;
+      }, 3000);
     } catch (saveError) {
       statusMessage = {
         type: 'error',
@@ -114,6 +148,42 @@
     } finally {
       saving = false;
     }
+  }
+
+  async function handleDelete(): Promise<void> {
+    if (!serviceModule.deletable) {
+      return;
+    }
+
+    try {
+      deleting = true;
+      statusMessage = null;
+      await restconfDelete(
+        getListEntryPath(serviceModule.restconfRoot, getRoutePathKey(serviceModule, data.serviceId))
+      );
+      await goto(`/services/${serviceModule.id}`, {
+        invalidateAll: true
+      });
+    } catch (deleteError) {
+      statusMessage = {
+        type: 'error',
+        text: deleteError instanceof Error ? deleteError.message : 'Failed to delete service draft.'
+      };
+    } finally {
+      deleting = false;
+    }
+  }
+
+  async function confirmDelete(): Promise<void> {
+    confirmDeleteOpen = false;
+    await handleDelete();
+  }
+
+  function handleReset(): void {
+    validationActive = false;
+    validationKey += 1;
+    statusMessage = null;
+    store.reset();
   }
 </script>
 
@@ -124,25 +194,43 @@
       <span>›</span>
       <a href={`/services/${serviceModule.id}`}>{serviceModule.title}</a>
       <span>›</span>
-      <span class="monospace">{data.serviceId}</span>
+      <span class="monospace">{displayServiceId}</span>
     </div>
+  </div>
+  <div>
+    <a class="btn btn-secondary" href={cloneHref}>Clone as new</a>
   </div>
 </div>
 
 <ServiceWorkspace
   module={serviceModule}
-  title={`${serviceModule.title} · ${data.serviceId}`}
+  title={`${serviceModule.title} · ${displayServiceId}`}
   subtitle="Edit an existing RESTCONF list entry using the shared service workspace."
   {draft}
+  {original}
   {validation}
   {dirty}
   {saving}
-  {loading}
-  saveDisabled={!validation.ok || !getKey()}
+  {deleting}
+  {validationActive}
+  {validationKey}
+  saveDisabled={!validation.ok || !getDraftKey(serviceModule, draft)}
+  showDelete={serviceModule.deletable ?? false}
   {statusMessage}
-  on:change={(event) => store.set(event.detail)}
-  on:reset={() => store.reset()}
-  on:save={handleSave}
+  onchange={(next) => store.set(next)}
+  ontouch={() => (validationActive = true)}
+  onreset={handleReset}
+  onsave={handleSave}
+  ondelete={() => (confirmDeleteOpen = true)}
+/>
+
+<ConfirmDialog
+  open={confirmDeleteOpen}
+  title={`Remove ${displayServiceId}?`}
+  message="This removes the RESTCONF entry for this service."
+  confirmLabel="Remove"
+  oncancel={() => (confirmDeleteOpen = false)}
+  onconfirm={confirmDelete}
 />
 
 <style>

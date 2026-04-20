@@ -3,8 +3,9 @@ fingerprint = 0xcb43a968b1316986
 dependencies = {
     "orchestron": (
         repo_url="https://github.com/stratoweave/stratoweave",
-        url="https://github.com/stratoweave/stratoweave/archive/e25ef80c6dc9c99d20e87cb69bb5e5222ae97cc4.zip",
-        hash="N-V-__8AAGm3HgBOvFU5wnoGxY_bhld4g-tBEcVusAyF8lAI"
+        repo_ref="restconf-write-response",
+        url="https://github.com/stratoweave/stratoweave/archive/1ceb66b2971ebdadad445bf07aed1f701d15d1c9.zip",
+        hash="N-V-__8AALq8HgAoOCq82NBXy6SIDjxcg6WX8naDtZcMvzCD"
     )
 }
 zig_dependencies = {}

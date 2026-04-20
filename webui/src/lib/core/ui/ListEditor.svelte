@@ -1,199 +1,139 @@
-<script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+<script lang="ts" generics="T">
+  import type { Snippet } from 'svelte';
 
-  export let label = 'Items';
-  export let items: string[] = [];
-  export let placeholder = 'New item';
-  export let emptyLabel = 'No items added yet.';
-
-  const dispatch = createEventDispatcher<{ change: string[] }>();
-
-  let pending = '';
-
-  function updateItem(index: number, value: string): void {
-    dispatch(
-      'change',
-      items.map((item, itemIndex) => (itemIndex === index ? value : item))
-    );
+  interface Props {
+    title?: string;
+    description?: string;
+    items?: T[];
+    addLabel?: string;
+    emptyLabel?: string;
+    getItemLabel?: (item: T, index: number) => string;
+    onadd?: () => void;
+    onremove?: (index: number) => void;
+    row?: Snippet<[T, number]>;
   }
 
-  function addItem(): void {
-    if (!pending.trim()) {
-      return;
-    }
-
-    dispatch('change', [...items, pending.trim()]);
-    pending = '';
-  }
-
-  function removeItem(index: number): void {
-    dispatch(
-      'change',
-      items.filter((_, itemIndex) => itemIndex !== index)
-    );
-  }
+  let {
+    title = '',
+    description = '',
+    items = [],
+    addLabel = 'Add item',
+    emptyLabel = 'No items configured yet.',
+    getItemLabel = (_item, index) => `Item ${index + 1}`,
+    onadd,
+    onremove,
+    row
+  }: Props = $props();
 </script>
 
 <div class="list-editor">
   <div class="list-editor__header">
-    <strong>{label}</strong>
-    <span class="list-editor__count">{items.length}</span>
+    <div class="list-editor__copy">
+      <h5>{title}</h5>
+      {#if description}
+        <p>{description}</p>
+      {/if}
+    </div>
+
+    <button class="btn btn-secondary btn-sm" type="button" onclick={() => onadd?.()}>
+      {addLabel}
+    </button>
   </div>
 
   {#if items.length === 0}
-    <p class="list-editor__empty">{emptyLabel}</p>
+    <div class="list-editor__empty">{emptyLabel}</div>
   {:else}
     <div class="list-editor__items">
       {#each items as item, index}
-        <div class="list-editor__row">
-          <span class="list-editor__drag">⋮⋮</span>
-          <input
-            type="text"
-            value={item}
-            on:input={(event) => updateItem(index, (event.currentTarget as HTMLInputElement).value)}
-          />
-          <button type="button" class="list-editor__remove" on:click={() => removeItem(index)}>✕</button>
-        </div>
+        <article class="card list-editor__item">
+          <div class="card-header list-editor__item-header">
+            <h5>{getItemLabel(item, index)}</h5>
+            <button class="btn btn-danger btn-sm" type="button" onclick={() => onremove?.(index)}>
+              Remove
+            </button>
+          </div>
+
+          <div class="card-body list-editor__item-body">
+            {@render row?.(item, index)}
+          </div>
+        </article>
       {/each}
     </div>
   {/if}
-
-  <div class="list-editor__add-row">
-    <input
-      type="text"
-      bind:value={pending}
-      {placeholder}
-      on:keydown={(e) => e.key === 'Enter' && addItem()}
-    />
-    <button type="button" class="btn btn-sm" on:click={addItem}>Add</button>
-  </div>
 </div>
 
 <style>
   .list-editor {
     display: grid;
-    gap: 10px;
+    gap: 12px;
   }
 
   .list-editor__header {
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--sw-text-label);
+    gap: 1rem;
   }
 
-  .list-editor__count {
-    font-family: var(--sw-font-mono);
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    background: var(--sw-bg-elevated);
-    color: var(--sw-text-muted);
+  .list-editor__copy {
+    display: grid;
+    gap: 4px;
+  }
+
+  .list-editor__copy h5 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sw-text-primary);
+  }
+
+  .list-editor__copy p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--sw-text-secondary);
   }
 
   .list-editor__empty {
-    margin: 0;
-    padding: 12px;
-    text-align: center;
-    color: var(--sw-text-muted);
-    font-size: 12px;
+    padding: 14px 16px;
     border: 1px dashed var(--sw-border-default);
     border-radius: var(--sw-radius-md);
+    color: var(--sw-text-muted);
+    background: var(--sw-bg-card);
+    font-size: 12px;
   }
 
   .list-editor__items {
     display: grid;
-    gap: 6px;
+    gap: 12px;
   }
 
-  .list-editor__row {
+  .list-editor__item {
+    overflow: hidden;
+  }
+
+  .list-editor__item-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border: 1px solid var(--sw-border-subtle);
-    border-radius: var(--sw-radius-md);
-    background: var(--sw-bg-elevated);
-    transition: border-color 0.15s;
+    justify-content: space-between;
+    gap: 12px;
   }
 
-  .list-editor__row:hover {
-    border-color: var(--sw-border-default);
-  }
-
-  .list-editor__drag {
-    color: var(--sw-text-muted);
-    cursor: grab;
-    font-size: 11px;
-    letter-spacing: 1px;
-    user-select: none;
-    flex-shrink: 0;
-  }
-
-  .list-editor__row input {
-    flex: 1;
-    padding: 6px 8px;
-    background: var(--sw-bg-input);
-    border: 1px solid var(--sw-border-default);
-    border-radius: var(--sw-radius-sm);
-    color: var(--sw-text-primary);
-    font-family: var(--sw-font-mono);
-    font-size: 12px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-
-  .list-editor__row input:focus {
-    border-color: var(--sw-accent);
-  }
-
-  .list-editor__remove {
-    background: none;
-    border: none;
-    color: var(--sw-text-muted);
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: var(--sw-radius-sm);
-    font-size: 12px;
-    transition: all 0.15s;
-    opacity: 0;
-    flex-shrink: 0;
-  }
-
-  .list-editor__row:hover .list-editor__remove {
-    opacity: 1;
-  }
-
-  .list-editor__remove:hover {
-    color: var(--sw-danger);
-    background: var(--sw-danger-dim);
-  }
-
-  .list-editor__add-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
-  }
-
-  .list-editor__add-row input {
-    width: 100%;
-    padding: 8px 12px;
-    background: var(--sw-bg-input);
-    border: 1px solid var(--sw-border-default);
-    border-radius: var(--sw-radius-md);
-    color: var(--sw-text-primary);
+  .list-editor__item-header h5 {
+    margin: 0;
     font-size: 13px;
-    outline: none;
-    transition: border-color 0.15s;
+    font-weight: 600;
   }
 
-  .list-editor__add-row input::placeholder {
-    color: var(--sw-text-muted);
+  .list-editor__item-body {
+    display: grid;
+    gap: 16px;
   }
 
-  .list-editor__add-row input:focus {
-    border-color: var(--sw-accent);
+  @media (max-width: 720px) {
+    .list-editor__header,
+    .list-editor__item-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 </style>

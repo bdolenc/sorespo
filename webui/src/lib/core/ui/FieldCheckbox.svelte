@@ -1,17 +1,25 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  interface Props {
+    label?: string;
+    checked?: boolean;
+    help?: string;
+    error?: string;
+    disabled?: boolean;
+    onchange?: (next: boolean) => void;
+  }
 
-  export let label = '';
-  export let checked = false;
-  export let help = '';
-  export let error = '';
-  export let disabled = false;
-
-  const dispatch = createEventDispatcher<{ change: boolean }>();
+  let {
+    label = '',
+    checked = false,
+    help = '',
+    error = '',
+    disabled = false,
+    onchange
+  }: Props = $props();
 
   function toggle(): void {
     if (disabled) return;
-    dispatch('change', !checked);
+    onchange?.(!checked);
   }
 
   function handleKeydown(event: KeyboardEvent): void {
@@ -32,8 +40,8 @@
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      on:click={toggle}
-      on:keydown={handleKeydown}
+      onclick={toggle}
+      onkeydown={handleKeydown}
     ></button>
     <span class="field-toggle__label">{label}</span>
   </div>

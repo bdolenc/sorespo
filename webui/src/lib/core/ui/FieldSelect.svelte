@@ -1,21 +1,46 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
   type FieldOption = {
     value: string;
     label: string;
   };
 
-  export let label = '';
-  export let value = '';
-  export let options: FieldOption[] = [];
-  export let error = '';
-  export let help = '';
-  export let yangType = '';
-  export let required = false;
-  export let disabled = false;
+  interface Props {
+    label?: string;
+    value?: string;
+    options?: FieldOption[];
+    error?: string;
+    help?: string;
+    yangType?: string;
+    required?: boolean;
+    disabled?: boolean;
+    validationKey?: number;
+    onchange?: (next: string) => void;
+    ontouch?: () => void;
+  }
 
-  const dispatch = createEventDispatcher<{ change: string }>();
+  let {
+    label = '',
+    value = '',
+    options = [],
+    error = '',
+    help = '',
+    yangType = '',
+    required = false,
+    disabled = false,
+    validationKey = 0,
+    onchange,
+    ontouch
+  }: Props = $props();
+
+  let touched = $state(false);
+
+  $effect(() => {
+    validationKey;
+    touched = false;
+  });
+
+  let visibleError = $derived(touched ? error : '');
+  let metaText = $derived(visibleError || help || '\u00A0');
 </script>
 
 <label class="field">
@@ -29,21 +54,21 @@
     {/if}
   </span>
   <select
-    class:has-error={!!error}
+    class:has-error={!!visibleError}
+    aria-invalid={visibleError ? 'true' : undefined}
     {value}
     {disabled}
-    on:change={(event) => dispatch('change', (event.currentTarget as HTMLSelectElement).value)}
+    onchange={(event) => onchange?.((event.currentTarget as HTMLSelectElement).value)}
+    onblur={() => {
+      touched = true;
+      ontouch?.();
+    }}
   >
     {#each options as option}
       <option value={option.value}>{option.label}</option>
     {/each}
   </select>
-  {#if help}
-    <small class="field__help">{help}</small>
-  {/if}
-  {#if error}
-    <span class="field__error">{error}</span>
-  {/if}
+  <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>
 </label>
 
 <style>
@@ -110,13 +135,13 @@
     cursor: not-allowed;
   }
 
-  .field__help {
+  .field__meta {
+    min-height: 1rem;
     font-size: 11px;
     color: var(--sw-text-muted);
   }
 
-  .field__error {
-    font-size: 11px;
+  .field__meta--error {
     color: var(--sw-danger);
   }
 </style>

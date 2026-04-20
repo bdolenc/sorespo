@@ -1,15 +1,31 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  interface Props {
+    dirty?: boolean;
+    saving?: boolean;
+    deleting?: boolean;
+    saveDisabled?: boolean;
+    saveLabel?: string;
+    showDelete?: boolean;
+    deleteDisabled?: boolean;
+    deleteLabel?: string;
+    onsave?: () => void;
+    onreset?: () => void;
+    ondelete?: () => void;
+  }
 
-  export let dirty = false;
-  export let saving = false;
-  export let saveDisabled = false;
-  export let saveLabel = 'Save';
-
-  const dispatch = createEventDispatcher<{
-    save: void;
-    reset: void;
-  }>();
+  let {
+    dirty = false,
+    saving = false,
+    deleting = false,
+    saveDisabled = false,
+    saveLabel = 'Save',
+    showDelete = false,
+    deleteDisabled = false,
+    deleteLabel = 'Delete',
+    onsave,
+    onreset,
+    ondelete
+  }: Props = $props();
 </script>
 
 <div class="save-bar card">
@@ -20,10 +36,15 @@
     </div>
 
     <div class="save-bar__actions">
-      <button class="btn" type="button" disabled={!dirty || saving} on:click={() => dispatch('reset')}>
+      {#if showDelete}
+        <button class="btn btn-danger" type="button" disabled={deleteDisabled || deleting || saving} onclick={() => ondelete?.()}>
+          {deleting ? 'Deleting...' : deleteLabel}
+        </button>
+      {/if}
+      <button class="btn" type="button" disabled={!dirty || saving} onclick={() => onreset?.()}>
         Reset
       </button>
-      <button class="btn btn-primary" type="button" disabled={saveDisabled || saving} on:click={() => dispatch('save')}>
+      <button class="btn btn-primary" type="button" disabled={saveDisabled || saving} onclick={() => onsave?.()}>
         {saving ? 'Saving...' : saveLabel}
       </button>
     </div>
@@ -61,6 +82,7 @@
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   @media (max-width: 720px) {

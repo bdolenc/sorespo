@@ -14,10 +14,17 @@ export const module: ServiceModule<NetinfraRouterDraft> = {
   title: 'Netinfra Router',
   collectionLabel: 'Router services',
   description: 'Create and edit `netinfra:router` list entries through a shared workspace shell.',
+  deletable: true,
+  collectionRestconfRoot: 'data/netinfra:netinfra',
   restconfRoot: 'data/netinfra:netinfra/router',
   keyParam: 'name',
   createDraft: createNetinfraRouterDraft,
   parse: parseNetinfraRouter,
+  cloneDraft: (draft) => ({
+    ...draft,
+    name: '',
+    id: null
+  }),
   list: listNetinfraRouters,
   validate: validateNetinfraRouterDraft,
   serialize: serializeNetinfraRouterDraft,

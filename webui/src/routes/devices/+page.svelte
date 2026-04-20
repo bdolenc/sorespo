@@ -1,33 +1,25 @@
 <script lang="ts">
+  import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
 
-  import { fetchDevices, type DeviceSummary } from '$lib/core/orchestron/client';
+  import type { DeviceSummary } from '$lib/core/orchestron/client';
 
-  let devices: DeviceSummary[] = [];
-  let loading = true;
-  let error = '';
-  let searchQuery = '';
+  let { data }: { data: { devices: DeviceSummary[]; loadError: string } } = $props();
 
-  $: filteredDevices = devices.filter((device) =>
-    device.name.toLowerCase().includes(searchQuery.toLowerCase())
+  let searchQuery = $state('');
+
+  let devices = $derived<DeviceSummary[]>(data.devices);
+  let error = $derived(data.loadError);
+  let filteredDevices = $derived(
+    devices.filter((device) => device.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  async function loadDevices(): Promise<void> {
-    try {
-      loading = true;
-      error = '';
-      devices = await fetchDevices();
-    } catch (loadError) {
-      error = loadError instanceof Error ? loadError.message : 'Failed to load devices.';
-    } finally {
-      loading = false;
-    }
+  function configDotColor(device: DeviceSummary): string {
+    return device.hasRunningConfig === false ? 'var(--sw-danger)' : 'var(--sw-success)';
   }
 
   onMount(() => {
-    loadDevices();
-
-    const handleRefresh = () => loadDevices();
+    const handleRefresh = () => invalidate('data:devices');
     window.addEventListener('global-refresh', handleRefresh);
 
     return () => {
@@ -53,9 +45,7 @@
   </label>
 </div>
 
-{#if loading}
-  <div class="loading-state">Loading devices...</div>
-{:else if error}
+{#if error}
   <div class="error-state">{error}</div>
 {:else if devices.length === 0}
   <div class="empty-state">No devices were returned by the backend.</div>
@@ -68,7 +58,7 @@
         <div class="device-card__header">
           <h3>{device.name}</h3>
           <span class="pill">
-            <span class="dot" style="background: var(--sw-success);"></span>
+            <span class="dot" style={`background: ${configDotColor(device)};`}></span>
             Device
           </span>
         </div>

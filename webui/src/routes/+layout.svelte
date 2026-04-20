@@ -3,36 +3,43 @@
 
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
-  import { onMount } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
 
-  import { fetchAllDeviceQueues } from '$lib/core/orchestron/client';
+  import CommandPalette from '$lib/core/command-palette/CommandPalette.svelte';
+  import { queuesPoll, refreshQueues } from '$lib/core/orchestron/poll-store';
+  import { listServiceModuleMeta } from '$lib/core/registry/service-modules';
+  import { version } from '../../package.json';
 
-  let totalPendingCount = 0;
-  let pollHandle: ReturnType<typeof setInterval> | null = null;
+  let { children }: { children?: Snippet } = $props();
 
-  async function refreshPendingCount(): Promise<void> {
-    try {
-      totalPendingCount = (await fetchAllDeviceQueues()).length;
-    } catch (error) {
-      console.error('Failed to fetch queue counts:', error);
-    }
-  }
+  const serviceModules = listServiceModuleMeta();
+
+  let totalPendingCount = $derived($queuesPoll.queues.length);
+  let paletteOpen = $state(false);
 
   async function handleRefresh(): Promise<void> {
     window.dispatchEvent(new CustomEvent('global-refresh'));
-    await Promise.all([refreshPendingCount(), invalidateAll()]);
+    await Promise.all([refreshQueues(), invalidateAll()]);
   }
 
   onMount(() => {
-    refreshPendingCount();
-    pollHandle = setInterval(refreshPendingCount, 1000);
-
-    return () => {
-      if (pollHandle) {
-        clearInterval(pollHandle);
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        paletteOpen = !paletteOpen;
       }
     };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   });
+
+  function decodePathSegment(value: string): string {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
 
   /** Derive a YANG-path breadcrumb from the current route */
   function getYangSegments(pathname: string): { label: string; current: boolean }[] {
@@ -40,16 +47,25 @@
     if (parts.length === 0) return [{ label: 'dashboard', current: true }];
 
     return parts.map((p, i) => ({
-      label: p,
+      label: decodePathSegment(p),
       current: i === parts.length - 1
     }));
   }
 
-  $: yangSegments = getYangSegments(page.url.pathname);
+  let currentPathname = $derived(page.url.pathname);
+  let yangSegments = $derived(getYangSegments(currentPathname));
+  let pageTitle = $derived(
+    yangSegments
+      .slice()
+      .reverse()
+      .map((seg) => seg.label)
+      .concat('StratoWeave')
+      .join(' · ')
+  );
 </script>
 
 <svelte:head>
-  <title>StratoWeave</title>
+  <title>{pageTitle}</title>
 </svelte:head>
 
 <div class="app-shell">
@@ -58,14 +74,26 @@
     <div class="sidebar-logo">
       <div class="logo-mark">SW</div>
       <span class="logo-text">StratoWeave</span>
-      <span class="logo-version">v0.9</span>
+      <span class="logo-version">v{version}</span>
     </div>
     <nav class="sidebar-nav" aria-label="Primary navigation">
+      <div class="nav-section">
+        <div class="nav-section-label">Overview</div>
+        <a
+          class="nav-item"
+          class:active={currentPathname === '/'}
+          href="/"
+        >
+          <span class="nav-icon">◉</span>
+          Dashboard
+        </a>
+      </div>
+
       <div class="nav-section">
         <div class="nav-section-label">Network Infra</div>
         <a
           class="nav-item"
-          class:active={page.url.pathname.startsWith('/devices')}
+          class:active={currentPathname.startsWith('/devices')}
           href="/devices"
         >
           <span class="nav-icon">⬡</span>
@@ -77,7 +105,7 @@
         <div class="nav-section-label">Operations</div>
         <a
           class="nav-item"
-          class:active={page.url.pathname.startsWith('/operations/config-queue')}
+          class:active={currentPathname.startsWith('/operations/config-queue')}
           href="/operations/config-queue"
         >
           <span class="nav-icon">◇</span>
@@ -92,12 +120,25 @@
         <div class="nav-section-label">Services</div>
         <a
           class="nav-item"
-          class:active={page.url.pathname.startsWith('/services')}
+          class:active={currentPathname.startsWith('/services')}
           href="/services"
         >
           <span class="nav-icon">◈</span>
           Service Modules
         </a>
+
+        <div class="nav-subsection">
+          {#each serviceModules as serviceModule}
+            <a
+              class="nav-item nav-item--sub"
+              class:active={currentPathname.startsWith(`/services/${serviceModule.id}`)}
+              href={`/services/${serviceModule.id}`}
+            >
+              <span class="nav-icon">·</span>
+              {serviceModule.title}
+            </a>
+          {/each}
+        </div>
       </div>
     </nav>
   </aside>
@@ -115,14 +156,56 @@
       </div>
 
       <div class="header-actions">
-        <button class="btn btn-ghost btn-sm" type="button" on:click={handleRefresh}>
+        <button class="btn btn-ghost btn-sm cmdk-trigger" type="button" onclick={() => (paletteOpen = true)} aria-label="Open command palette">
+          Search <kbd>⌘K</kbd>
+        </button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick={handleRefresh}>
           ⟳ Refresh
         </button>
       </div>
     </header>
 
     <main class="app-content">
-      <slot />
+      {@render children?.()}
     </main>
   </div>
 </div>
+
+<CommandPalette bind:open={paletteOpen} />
+
+<style>
+  .nav-subsection {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+    padding-left: 12px;
+  }
+
+  .nav-item--sub {
+    font-size: 12px;
+    padding-left: 28px;
+    color: var(--sw-text-muted);
+  }
+
+  .nav-item--sub .nav-icon {
+    width: 12px;
+    font-size: 14px;
+  }
+
+  .cmdk-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cmdk-trigger kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    border: 1px solid var(--sw-border-subtle);
+    border-radius: 4px;
+    background: var(--sw-bg-deep);
+    font-family: var(--sw-font-mono);
+    font-size: 10px;
+    color: var(--sw-text-muted);
+  }
+</style>

@@ -2,14 +2,26 @@ import type { RestconfRequestOptions } from '$lib/core/restconf/proxy-types';
 
 const RESTCONF_BASE = '/api/restconf';
 
+type Fetch = typeof fetch;
+
 function normalizePath(path: string): string {
   return path.replace(/^\/+/, '');
 }
 
-async function readResponse<T>(response: Response): Promise<T> {
+function encodeListKeyPart(value: string): string {
+  // Double-encode forward slashes so the SvelteKit catch-all proxy route
+  // does not decode them into path separators before forwarding upstream.
+  return encodeURIComponent(value.trim()).replace(/%2F/gi, '%252F');
+}
+
+async function readResponse<T>(response: Response, readBody = true): Promise<T> {
   if (!response.ok) {
     const message = (await response.text()) || response.statusText;
     throw new Error(`RESTCONF ${response.status}: ${message}`);
+  }
+
+  if (!readBody) {
+    return null as T;
   }
 
   const text = await response.text();
@@ -26,7 +38,8 @@ async function readResponse<T>(response: Response): Promise<T> {
 
 export async function restconfRequest<T>(
   path: string,
-  init: RequestInit & RestconfRequestOptions = {}
+  init: RequestInit & RestconfRequestOptions = {},
+  fetchFn: Fetch = fetch
 ): Promise<T> {
   const headers = new Headers(init.headers);
 
@@ -40,19 +53,19 @@ export async function restconfRequest<T>(
     headers.set('content-type', init.contentType);
   }
 
-  const response = await fetch(`${RESTCONF_BASE}/${normalizePath(path)}`, {
+  const response = await fetchFn(`${RESTCONF_BASE}/${normalizePath(path)}`, {
     ...init,
     headers
   });
 
-  return readResponse<T>(response);
+  return readResponse<T>(response, init.readBody ?? true);
 }
 
-export function restconfGetJson<T>(path: string): Promise<T> {
+export function restconfGetJson<T>(path: string, fetchFn: Fetch = fetch): Promise<T> {
   return restconfRequest<T>(path, {
     method: 'GET',
     accept: 'application/yang-data+json'
-  });
+  }, fetchFn);
 }
 
 export function restconfPutJson<T>(path: string, body: unknown): Promise<T> {
@@ -60,17 +73,27 @@ export function restconfPutJson<T>(path: string, body: unknown): Promise<T> {
     method: 'PUT',
     body: JSON.stringify(body),
     accept: 'application/yang-data+json',
-    contentType: 'application/yang-data+json'
+    contentType: 'application/yang-data+json',
+    readBody: false
   });
 }
 
 export function restconfDelete(path: string): Promise<unknown> {
   return restconfRequest(path, {
     method: 'DELETE',
-    accept: 'application/yang-data+json'
+    accept: 'application/yang-data+json',
+    readBody: false
   });
 }
 
-export function getListEntryPath(root: string, key: string): string {
-  return `${normalizePath(root)}=${encodeURIComponent(key)}`;
+export function encodeListKey(key: string | string[]): string {
+  if (Array.isArray(key)) {
+    return key.map((part) => encodeListKeyPart(String(part))).join(',');
+  }
+
+  return encodeListKeyPart(String(key));
+}
+
+export function getListEntryPath(root: string, key: string | string[]): string {
+  return `${normalizePath(root)}=${encodeListKey(key)}`;
 }

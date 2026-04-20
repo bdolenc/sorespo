@@ -1,19 +1,48 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  interface Props {
+    label?: string;
+    value?: number | null;
+    min?: number;
+    max?: number;
+    step?: number;
+    placeholder?: string;
+    error?: string;
+    help?: string;
+    yangType?: string;
+    required?: boolean;
+    disabled?: boolean;
+    validationKey?: number;
+    onchange?: (next: number | null) => void;
+    ontouch?: () => void;
+  }
 
-  export let label = '';
-  export let value: number | null = null;
-  export let min: number | undefined = undefined;
-  export let max: number | undefined = undefined;
-  export let step: number | undefined = 1;
-  export let placeholder = '';
-  export let error = '';
-  export let help = '';
-  export let yangType = '';
-  export let required = false;
-  export let disabled = false;
+  let {
+    label = '',
+    value = null,
+    min,
+    max,
+    step = 1,
+    placeholder = '',
+    error = '',
+    help = '',
+    yangType = '',
+    required = false,
+    disabled = false,
+    validationKey = 0,
+    onchange,
+    ontouch
+  }: Props = $props();
 
-  const dispatch = createEventDispatcher<{ change: number | null }>();
+  let touched = $state(false);
+
+  $effect(() => {
+    validationKey;
+    touched = false;
+  });
+
+  let visibleError = $derived(touched ? error : '');
+  let defaultHelp = $derived(help || (min !== undefined && max !== undefined ? `Range: ${min} — ${max}` : ''));
+  let metaText = $derived(visibleError || defaultHelp || '\u00A0');
 </script>
 
 <label class="field">
@@ -28,26 +57,29 @@
   </span>
   <input
     type="number"
-    class:has-error={!!error}
+    class:has-error={!!visibleError}
+    aria-invalid={visibleError ? 'true' : undefined}
     value={value ?? ''}
     {min}
     {max}
     {step}
     {placeholder}
     {disabled}
-    on:input={(event) => {
+    oninput={(event) => {
       const next = (event.currentTarget as HTMLInputElement).value;
-      dispatch('change', next === '' ? null : Number(next));
+      if (next === '') {
+        onchange?.(null);
+        return;
+      }
+      const parsed = Number(next);
+      onchange?.(Number.isFinite(parsed) ? parsed : null);
+    }}
+    onblur={() => {
+      touched = true;
+      ontouch?.();
     }}
   />
-  {#if help}
-    <small class="field__help">{help}</small>
-  {:else if min !== undefined && max !== undefined}
-    <small class="field__help">Range: {min} — {max.toLocaleString()}</small>
-  {/if}
-  {#if error}
-    <span class="field__error">{error}</span>
-  {/if}
+  <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>
 </label>
 
 <style>
@@ -114,13 +146,13 @@
     cursor: not-allowed;
   }
 
-  .field__help {
+  .field__meta {
+    min-height: 1rem;
     font-size: 11px;
     color: var(--sw-text-muted);
   }
 
-  .field__error {
-    font-size: 11px;
+  .field__meta--error {
     color: var(--sw-danger);
   }
 </style>

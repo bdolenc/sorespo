@@ -1,17 +1,44 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  interface Props {
+    label?: string;
+    value?: string;
+    placeholder?: string;
+    error?: string;
+    help?: string;
+    yangType?: string;
+    required?: boolean;
+    disabled?: boolean;
+    mono?: boolean;
+    validationKey?: number;
+    onchange?: (next: string) => void;
+    ontouch?: () => void;
+  }
 
-  export let label = '';
-  export let value = '';
-  export let placeholder = '';
-  export let error = '';
-  export let help = '';
-  export let yangType = '';
-  export let required = false;
-  export let disabled = false;
-  export let mono = false;
+  let {
+    label = '',
+    value = '',
+    placeholder = '',
+    error = '',
+    help = '',
+    yangType = '',
+    required = false,
+    disabled = false,
+    mono = false,
+    validationKey = 0,
+    onchange,
+    ontouch
+  }: Props = $props();
 
-  const dispatch = createEventDispatcher<{ change: string }>();
+  let touched = $state(false);
+
+  $effect(() => {
+    // Reset touched whenever validationKey bumps.
+    validationKey;
+    touched = false;
+  });
+
+  let visibleError = $derived(touched ? error : '');
+  let metaText = $derived(visibleError || help || '\u00A0');
 </script>
 
 <label class="field">
@@ -27,18 +54,18 @@
   <input
     type="text"
     class:mono
-    class:has-error={!!error}
+    class:has-error={!!visibleError}
+    aria-invalid={visibleError ? 'true' : undefined}
     {value}
     {placeholder}
     {disabled}
-    on:input={(event) => dispatch('change', (event.currentTarget as HTMLInputElement).value)}
+    oninput={(event) => onchange?.((event.currentTarget as HTMLInputElement).value)}
+    onblur={() => {
+      touched = true;
+      ontouch?.();
+    }}
   />
-  {#if help}
-    <small class="field__help">{help}</small>
-  {/if}
-  {#if error}
-    <span class="field__error">{error}</span>
-  {/if}
+  <small class:field__meta--error={!!visibleError} class="field__meta">{metaText}</small>
 </label>
 
 <style>
@@ -109,16 +136,13 @@
     cursor: not-allowed;
   }
 
-  .field__help {
+  .field__meta {
+    min-height: 1rem;
     font-size: 11px;
     color: var(--sw-text-muted);
   }
 
-  .field__error {
-    font-size: 11px;
+  .field__meta--error {
     color: var(--sw-danger);
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
 </style>
