@@ -273,6 +273,13 @@ SRC_YANG_0: str = r"""module sorespo-rfs {
                 leaf pps {
                     type uint64;
                 }
+                leaf oper-status {
+                    type enumeration {
+                        enum up;
+                        enum down;
+                        enum unknown;
+                    }
+                }
             }
         }
 

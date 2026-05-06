@@ -37,7 +37,8 @@ export const module: ServiceModule<NetinfraBackboneLinkDraft> = {
     rightRouter: '',
     rightInterface: '',
     leftPps: null,
-    rightPps: null
+    rightPps: null,
+    linkStatus: 'unknown'
   }),
   list: listNetinfraBackboneLinks,
   validate: validateNetinfraBackboneLinkDraft,

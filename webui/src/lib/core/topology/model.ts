@@ -16,8 +16,11 @@ export interface NetinfraBackboneLinkApi {
   state?: {
     'left-pps'?: number | string;
     'right-pps'?: number | string;
+    'link-status'?: string;
   };
 }
+
+export type LinkStatus = 'up' | 'down' | 'unknown';
 
 export interface NetinfraPayload {
   'netinfra:netinfra'?: {
@@ -66,6 +69,7 @@ export interface TopologyLink {
   monitorTraffic: boolean;
   leftPps: number | null;
   rightPps: number | null;
+  linkStatus: LinkStatus;
 }
 
 export interface TopologySiteAttachment {
@@ -122,6 +126,12 @@ function parsePps(value: number | string | undefined): number | null {
   }
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseLinkStatus(value: string | undefined): LinkStatus {
+  if (value === 'up') return 'up';
+  if (value === 'down') return 'down';
+  return 'unknown';
 }
 
 function normalizeIdentity(value: unknown): string {
@@ -383,7 +393,8 @@ export function buildTopologyGraph(
       rightInterface: String(link['right-interface'] ?? ''),
       monitorTraffic: Boolean(link['monitor-traffic'] ?? false),
       leftPps: parsePps(link.state?.['left-pps']),
-      rightPps: parsePps(link.state?.['right-pps'])
+      rightPps: parsePps(link.state?.['right-pps']),
+      linkStatus: parseLinkStatus(link.state?.['link-status'])
     }));
 
   const positions = computeRouterPositions(routerApis);

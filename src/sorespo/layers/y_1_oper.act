@@ -59,9 +59,10 @@ SRC_DNODE_CHILD_2: DList = DList(module='netinfra-inter', namespace='http://exam
     DContainer(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='dynstate', config=True, presence=False, exts=[
             DExt(module='stratoweave', namespace='http://stratoweave.org/yang/stratoweave.yang', prefix='sw', name='dynstate', arg=None, exts=[])
         ]),
-    DContainer(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='state', config=False, description='Operational state lifted from the RFS backbone-interface entries.\nleft-pps is the receive PPS measured on the left interface;\nright-pps is the receive PPS measured on the right interface.', presence=False, children=[
+    DContainer(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='state', config=False, description="Operational state lifted from the RFS backbone-interface entries.\nleft-pps is the receive PPS measured on the left interface;\nright-pps is the receive PPS measured on the right interface.\nlink-status is the combined oper-state of the two endpoints\n(up only when both endpoints are up; down if either is down;\nunknown when either endpoint's oper-state is unavailable).", presence=False, children=[
         DLeaf(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='left-pps', config=False, mandatory=False, type_=DTypeIntegerUnsigned(name='uint64', description=None, reference=None, exts=[], builtin_type='uint64', default=None, ranges=Ranges([(0, 18446744073709551615)]))),
-        DLeaf(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='right-pps', config=False, mandatory=False, type_=DTypeIntegerUnsigned(name='uint64', description=None, reference=None, exts=[], builtin_type='uint64', default=None, ranges=Ranges([(0, 18446744073709551615)])))
+        DLeaf(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='right-pps', config=False, mandatory=False, type_=DTypeIntegerUnsigned(name='uint64', description=None, reference=None, exts=[], builtin_type='uint64', default=None, ranges=Ranges([(0, 18446744073709551615)]))),
+        DLeaf(module='netinfra-inter', namespace='http://example.com/netinfra-inter', prefix='netinfra-inter', name='link-status', config=False, mandatory=False, type_=DTypeEnum(name='enumeration', description=None, reference=None, exts=[], builtin_type='enumeration', default=None, name_to_val={'up':0, 'down':1, 'unknown':2}))
     ])
 ])
 
@@ -294,12 +295,22 @@ SRC_YANG_1: str = r"""module netinfra-inter {
         description
           "Operational state lifted from the RFS backbone-interface entries.
            left-pps is the receive PPS measured on the left interface;
-           right-pps is the receive PPS measured on the right interface.";
+           right-pps is the receive PPS measured on the right interface.
+           link-status is the combined oper-state of the two endpoints
+           (up only when both endpoints are up; down if either is down;
+           unknown when either endpoint's oper-state is unavailable).";
         leaf left-pps {
           type uint64;
         }
         leaf right-pps {
           type uint64;
+        }
+        leaf link-status {
+          type enumeration {
+            enum up;
+            enum down;
+            enum unknown;
+          }
         }
       }
     }
@@ -1163,16 +1174,20 @@ _breaker8: None = None
 class netinfra_inter__netinfra__backbone_link__state(yang.adata.MNode):
     left_pps: ?u64
     right_pps: ?u64
+    link_status: ?str
 
-    mut def __init__(self, left_pps: ?u64, right_pps: ?u64) -> None:
+    mut def __init__(self, left_pps: ?u64, right_pps: ?u64, link_status: ?str) -> None:
         self.left_pps = left_pps
         self.right_pps = right_pps
+        self.link_status = link_status
 
     pure def _get_attr(self, name: str) -> ?value:
         if name == 'left_pps':
             return self.left_pps
         if name == 'right_pps':
             return self.right_pps
+        if name == 'link_status':
+            return self.link_status
 
     mut def to_gdata(self) -> yang.gdata.Node:
         return yang.adata.from_adata(SRC_DNODE, self, loose=True, root_path=['netinfra-inter:netinfra', 'backbone-link', 'state'])
@@ -1180,7 +1195,7 @@ class netinfra_inter__netinfra__backbone_link__state(yang.adata.MNode):
     @staticmethod
     mut def from_gdata(n: ?yang.gdata.Node) -> netinfra_inter__netinfra__backbone_link__state:
         if n is not None:
-            return netinfra_inter__netinfra__backbone_link__state(left_pps=n.get_opt_u64(yang.gdata.Id(NS_netinfra_inter, 'left-pps')), right_pps=n.get_opt_u64(yang.gdata.Id(NS_netinfra_inter, 'right-pps')))
+            return netinfra_inter__netinfra__backbone_link__state(left_pps=n.get_opt_u64(yang.gdata.Id(NS_netinfra_inter, 'left-pps')), right_pps=n.get_opt_u64(yang.gdata.Id(NS_netinfra_inter, 'right-pps')), link_status=n.get_opt_str(yang.gdata.Id(NS_netinfra_inter, 'link-status')))
         return netinfra_inter__netinfra__backbone_link__state()
 
     mut def copy(self) -> netinfra_inter__netinfra__backbone_link__state:
@@ -1923,14 +1938,16 @@ _breaker30: None = None
 class netinfra_inter__netinfra__backbone_link__state_subs(SubscriptionNode):
     left_pps: SubscriptionNode
     right_pps: SubscriptionNode
+    link_status: SubscriptionNode
 
     pure def __init__(self, path: ?SubscriptionPath=None) -> None:
         SubscriptionNode.__init__(self, path)
         self.left_pps = SubscriptionNode(SubscriptionPath(yang.gdata.Id(NS_netinfra_inter, 'left-pps'), parent=path))
         self.right_pps = SubscriptionNode(SubscriptionPath(yang.gdata.Id(NS_netinfra_inter, 'right-pps'), parent=path))
+        self.link_status = SubscriptionNode(SubscriptionPath(yang.gdata.Id(NS_netinfra_inter, 'link-status'), parent=path))
 
     pure def _direct_children(self) -> list[SubscriptionNode]:
-        direct: list[SubscriptionNode] = [self.left_pps, self.right_pps]
+        direct: list[SubscriptionNode] = [self.left_pps, self.right_pps, self.link_status]
         return direct
 
 _breaker31: None = None

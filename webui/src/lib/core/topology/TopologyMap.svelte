@@ -70,13 +70,15 @@
               {@const routeId = `${link.leftRouter},${link.leftInterface},${link.rightRouter},${link.rightInterface}`}
               {@const href = `/services/netinfra-backbone-link/${encodeURIComponent(routeId)}`}
 
-              <a {href} class="topology__link-link" aria-label={`Open backbone-link ${link.leftRouter} ${link.leftInterface} ↔ ${link.rightRouter} ${link.rightInterface}`}>
+              <a {href} class="topology__link-link" aria-label={`Open backbone-link ${link.leftRouter} ${link.leftInterface} ↔ ${link.rightRouter} ${link.rightInterface}, status ${link.linkStatus}`}>
                 <line
                   x1={leftRouter.x + offsetX}
                   y1={leftRouter.y + offsetY}
                   x2={rightRouter.x - offsetX}
                   y2={rightRouter.y - offsetY}
                   class="topology__link"
+                  class:topology__link--up={link.linkStatus === 'up'}
+                  class:topology__link--down={link.linkStatus === 'down'}
                 />
                 <line
                   x1={leftRouter.x + offsetX}
@@ -269,6 +271,14 @@
     stroke-width: 3;
     transition: stroke 0.15s ease, stroke-width 0.15s ease;
     pointer-events: none;
+  }
+
+  .topology__link--up {
+    stroke: rgba(34, 197, 94, 0.85);
+  }
+
+  .topology__link--down {
+    stroke: rgba(239, 68, 68, 0.9);
   }
 
   .topology__link-hit {
