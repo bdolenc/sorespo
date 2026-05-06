@@ -12,7 +12,12 @@
     getDraftPathKey,
     getRoutePathKey
   } from '$lib/core/registry/types';
-  import { getListEntryPath, restconfDelete, restconfPutJson } from '$lib/core/restconf/client';
+  import {
+    getListEntryPath,
+    restconfDelete,
+    restconfPatchJson,
+    wrapListEntryBody
+  } from '$lib/core/restconf/client';
   import ConfirmDialog from '$lib/core/ui/ConfirmDialog.svelte';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
@@ -130,9 +135,9 @@
       statusMessage = null;
       const snapshot = draft;
       const payload = serviceModule.serialize(snapshot);
-      await restconfPutJson(
+      await restconfPatchJson(
         getListEntryPath(serviceModule.restconfRoot, getDraftPathKey(serviceModule, snapshot)),
-        payload
+        wrapListEntryBody(serviceModule.restconfRoot, payload)
       );
       store.markSaved(snapshot);
       const successMessage = { type: 'success' as const, text: `Saved ${key} successfully.` };

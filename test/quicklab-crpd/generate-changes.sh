@@ -1,9 +1,9 @@
 #!/bin/bash
 # Generate config changes for testing the approval queue
 
-OTRON_HTTP_ORIGIN="${OTRON_HTTP_ORIGIN:-http://localhost:15000}"
+STRATOWEAVE_HTTP_ORIGIN="${STRATOWEAVE_HTTP_ORIGIN:-http://localhost:15000}"
 
-echo "Using StratoWeave at: $OTRON_HTTP_ORIGIN"
+echo "Using StratoWeave at: $STRATOWEAVE_HTTP_ORIGIN"
 
 # Function to send config
 send_config() {
@@ -23,11 +23,11 @@ send_config() {
 EOF
     
     echo "Sending config to set FRA-CORE-1 role to: $role"
-    curl -X PUT \
+    curl -f -X PATCH \
         -H "Content-Type: application/yang-data+xml" \
         -H "Async: true" \
         -d @/tmp/temp-config.xml \
-        "${OTRON_HTTP_ORIGIN}/restconf/data"
+        "${STRATOWEAVE_HTTP_ORIGIN}/restconf/data"
     echo ""
 }
 

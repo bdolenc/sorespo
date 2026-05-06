@@ -69,7 +69,7 @@ download-release:
 
 WEBUI_HOST ?= 127.0.0.1
 WEBUI_PORT ?= 3000
-ORCHESTRON_API_ORIGIN ?= http://localhost:15000
+STRATOWEAVE_API_ORIGIN ?= http://localhost:15000
 WEBUI_PIDFILE ?= logs/webui-dev.pid
 WEBUI_LOG ?= logs/webui-dev.log
 
@@ -104,8 +104,8 @@ start-webui:
 		rm -f "$(WEBUI_PIDFILE)"; \
 	fi
 	@echo "Starting WebUI dev server on http://$(WEBUI_HOST):$(WEBUI_PORT)"
-	@echo "Proxying API requests to $(ORCHESTRON_API_ORIGIN)"
-	@setsid env ORCHESTRON_API_ORIGIN="$(ORCHESTRON_API_ORIGIN)" npm --prefix webui run dev -- --host $(WEBUI_HOST) --port $(WEBUI_PORT) --strictPort </dev/null >"$(WEBUI_LOG)" 2>&1 &
+	@echo "Proxying API requests to $(STRATOWEAVE_API_ORIGIN)"
+	@setsid env STRATOWEAVE_API_ORIGIN="$(STRATOWEAVE_API_ORIGIN)" npm --prefix webui run dev -- --host $(WEBUI_HOST) --port $(WEBUI_PORT) --strictPort </dev/null >"$(WEBUI_LOG)" 2>&1 &
 	@sleep 3
 	@listener_pid=$$(ss -ltnp '( sport = :$(WEBUI_PORT) )' 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | head -n 1); \
 	if [ -n "$$listener_pid" ]; then \

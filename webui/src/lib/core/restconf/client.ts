@@ -78,6 +78,16 @@ export function restconfPutJson<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
+export function restconfPatchJson<T>(path: string, body: unknown): Promise<T> {
+  return restconfRequest<T>(path, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    accept: 'application/yang-data+json',
+    contentType: 'application/yang-data+json',
+    readBody: false
+  });
+}
+
 export function restconfDelete(path: string): Promise<unknown> {
   return restconfRequest(path, {
     method: 'DELETE',
@@ -96,4 +106,26 @@ export function encodeListKey(key: string | string[]): string {
 
 export function getListEntryPath(root: string, key: string | string[]): string {
   return `${normalizePath(root)}=${encodeListKey(key)}`;
+}
+
+export function getListWrapperKey(restconfRoot: string): string {
+  const segments = normalizePath(restconfRoot).replace(/^data\//, '').split('/');
+  const last = segments[segments.length - 1];
+
+  if (last.includes(':')) {
+    return last;
+  }
+
+  for (let i = segments.length - 2; i >= 0; i--) {
+    const colon = segments[i].indexOf(':');
+    if (colon >= 0) {
+      return `${segments[i].substring(0, colon)}:${last}`;
+    }
+  }
+
+  return last;
+}
+
+export function wrapListEntryBody(restconfRoot: string, entry: unknown): Record<string, unknown[]> {
+  return { [getListWrapperKey(restconfRoot)]: [entry] };
 }

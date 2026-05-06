@@ -14,7 +14,7 @@ async function readProxyBody(request: Request): Promise<ArrayBuffer | undefined>
 }
 
 export function getApiOrigin(): string {
-  return process.env.ORCHESTRON_API_ORIGIN ?? DEFAULT_API_ORIGIN;
+  return process.env.STRATOWEAVE_API_ORIGIN ?? DEFAULT_API_ORIGIN;
 }
 
 export async function proxyRequest(request: Request, targetPath: string, search = ''): Promise<Response> {

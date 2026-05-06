@@ -10,7 +10,7 @@
     getDraftKeyLabel,
     getDraftPathKey
   } from '$lib/core/registry/types';
-  import { getListEntryPath, restconfPutJson } from '$lib/core/restconf/client';
+  import { getListEntryPath, restconfPutJson, wrapListEntryBody } from '$lib/core/restconf/client';
   import ServiceWorkspace from '$lib/core/workspace/ServiceWorkspace.svelte';
 
   let {
@@ -129,7 +129,7 @@
       const payload = serviceModule.serialize(snapshot);
       await restconfPutJson(
         getListEntryPath(serviceModule.restconfRoot, getDraftPathKey(serviceModule, snapshot)),
-        payload
+        wrapListEntryBody(serviceModule.restconfRoot, payload)
       );
       store.markSaved(snapshot);
     } catch (saveError) {
