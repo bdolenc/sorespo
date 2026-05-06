@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { formatPps } from '$lib/core/topology/model';
   import { formatNetinfraBackboneLinkEndpoints } from '$lib/modules/netinfra-backbone-link/model';
 
   import type { NetinfraBackboneLinkDraft } from '$lib/modules/netinfra-backbone-link/model';
@@ -10,6 +11,8 @@
   <span class="summary__pill">{formatNetinfraBackboneLinkEndpoints(draft)}</span>
   {#if draft.monitorTraffic}
     <span class="summary__pill accent">Monitoring on</span>
+    <span class="summary__pill mono" title="Receive PPS on left interface">→ {formatPps(draft.leftPps)} pps</span>
+    <span class="summary__pill mono" title="Receive PPS on right interface">← {formatPps(draft.rightPps)} pps</span>
   {/if}
 </div>
 
@@ -35,5 +38,10 @@
     background: var(--sw-accent-glow);
     color: var(--sw-accent);
     font-family: var(--sw-font-mono);
+  }
+
+  .summary__pill.mono {
+    font-family: var(--sw-font-mono);
+    color: var(--sw-text-primary);
   }
 </style>

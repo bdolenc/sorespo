@@ -23,6 +23,14 @@ function getBackboneLinkEntry(input: any): any | null {
   return null;
 }
 
+function parsePpsLeaf(value: unknown): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function parseNetinfraBackboneLink(input: unknown): NetinfraBackboneLinkDraft {
   const defaults = createNetinfraBackboneLinkDraft();
   const backboneLink = getBackboneLinkEntry(input);
@@ -31,12 +39,16 @@ export function parseNetinfraBackboneLink(input: unknown): NetinfraBackboneLinkD
     return defaults;
   }
 
+  const state = backboneLink.state;
+
   return {
     leftRouter: String(backboneLink['left-router'] ?? ''),
     leftInterface: String(backboneLink['left-interface'] ?? ''),
     rightRouter: String(backboneLink['right-router'] ?? ''),
     rightInterface: String(backboneLink['right-interface'] ?? ''),
-    monitorTraffic: Boolean(backboneLink['monitor-traffic'] ?? false)
+    monitorTraffic: Boolean(backboneLink['monitor-traffic'] ?? false),
+    leftPps: parsePpsLeaf(state?.['left-pps']),
+    rightPps: parsePpsLeaf(state?.['right-pps'])
   };
 }
 

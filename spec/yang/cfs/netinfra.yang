@@ -83,6 +83,22 @@ module netinfra {
         type boolean;
         default false;
       }
+      container dynstate {
+        sw:dynstate;
+      }
+      container state {
+        config false;
+        description
+          "Operational state lifted from the underlying RFS backbone-interface entries.
+           left-pps is the receive PPS measured on the left interface (traffic flowing right -> left);
+           right-pps is the receive PPS measured on the right interface (traffic flowing left -> right).";
+        leaf left-pps {
+          type uint64;
+        }
+        leaf right-pps {
+          type uint64;
+        }
+      }
     }
   }
 }

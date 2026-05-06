@@ -12,6 +12,11 @@ export interface NetinfraBackboneLinkApi {
   'left-interface'?: string;
   'right-router'?: string;
   'right-interface'?: string;
+  'monitor-traffic'?: boolean;
+  state?: {
+    'left-pps'?: number | string;
+    'right-pps'?: number | string;
+  };
 }
 
 export interface NetinfraPayload {
@@ -58,6 +63,9 @@ export interface TopologyLink {
   leftInterface: string;
   rightRouter: string;
   rightInterface: string;
+  monitorTraffic: boolean;
+  leftPps: number | null;
+  rightPps: number | null;
 }
 
 export interface TopologySiteAttachment {
@@ -105,8 +113,16 @@ export const TOPOLOGY_ROUTER_RADIUS = 42;
 export const TOPOLOGY_SITE_CARD_WIDTH = 154;
 export const TOPOLOGY_SITE_CARD_HEIGHT = 58;
 export const TOPOLOGY_SITE_CARD_GAP = 28;
-export const TOPOLOGY_LINK_LABEL_HEIGHT = 38;
+export const TOPOLOGY_LINK_LABEL_HEIGHT = 56;
 export const TOPOLOGY_VIEW_PADDING = 48;
+
+function parsePps(value: number | string | undefined): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function normalizeIdentity(value: unknown): string {
   const raw = String(value ?? '').trim();
@@ -203,9 +219,31 @@ function buildSiteAttachmentGroups(sites: L3VpnSiteApi[]): SiteAttachmentGroup[]
   return Array.from(groups.values());
 }
 
-export function getLinkLabelWidth(leftInterface: string, rightInterface: string): number {
-  const longestLabelLength = Math.max(leftInterface.trim().length, rightInterface.trim().length);
-  return Math.max(116, Math.min(210, 28 + longestLabelLength * 7));
+export function formatPps(pps: number | null): string {
+  if (pps === null) {
+    return '—';
+  }
+  if (pps >= 10_000) {
+    return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(pps);
+  }
+  return new Intl.NumberFormat('en').format(pps);
+}
+
+export function getLinkPpsLabel(link: TopologyLink): string {
+  if (!link.monitorTraffic) {
+    return '';
+  }
+  return `→ ${formatPps(link.leftPps)} pps    ← ${formatPps(link.rightPps)}`;
+}
+
+export function getLinkLabelWidth(
+  leftInterface: string,
+  rightInterface: string,
+  ppsLabel: string = ''
+): number {
+  const interfaceLineLength = leftInterface.trim().length + rightInterface.trim().length + 3;
+  const longest = Math.max(interfaceLineLength, ppsLabel.length);
+  return Math.max(140, Math.min(260, 28 + longest * 7));
 }
 
 export function getLinkLabelPosition(
@@ -313,7 +351,7 @@ function getGraphBounds(routers: TopologyRouter[], links: TopologyLink[]): {
     includeBox(
       label.x,
       label.y,
-      getLinkLabelWidth(link.leftInterface, link.rightInterface) / 2,
+      getLinkLabelWidth(link.leftInterface, link.rightInterface, getLinkPpsLabel(link)) / 2,
       TOPOLOGY_LINK_LABEL_HEIGHT / 2
     );
   }
@@ -342,7 +380,10 @@ export function buildTopologyGraph(
       leftRouter: String(link['left-router']),
       leftInterface: String(link['left-interface'] ?? ''),
       rightRouter: String(link['right-router']),
-      rightInterface: String(link['right-interface'] ?? '')
+      rightInterface: String(link['right-interface'] ?? ''),
+      monitorTraffic: Boolean(link['monitor-traffic'] ?? false),
+      leftPps: parsePps(link.state?.['left-pps']),
+      rightPps: parsePps(link.state?.['right-pps'])
     }));
 
   const positions = computeRouterPositions(routerApis);

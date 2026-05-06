@@ -4,6 +4,10 @@ export interface NetinfraBackboneLinkDraft {
   rightRouter: string;
   rightInterface: string;
   monitorTraffic: boolean;
+  /** Read-only operational state lifted from the lower layers. Not serialized. */
+  leftPps: number | null;
+  /** Read-only operational state lifted from the lower layers. Not serialized. */
+  rightPps: number | null;
 }
 
 export function getNetinfraBackboneLinkRouteId(
