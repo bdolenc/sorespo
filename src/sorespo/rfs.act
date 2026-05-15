@@ -60,9 +60,7 @@ class InterfaceStats(object):
         self.rx_packets = rx_packets
         self.oper_status = oper_status
 
-def _bb_interface_description(remote_device: str, remote_interface: str, monitored: bool = False, pps: ?u64=None) -> str:
-    if monitored and pps is not None:
-        return "Link to {remote_device} [{remote_interface}] - {pps} PPS"
+def _bb_interface_description(remote_device: str, remote_interface: str) -> str:
     return "Link to {remote_device} [{remote_interface}]"
 
 def bb_interface_subscription_owner_id(interface_name: str) -> str:
@@ -190,17 +188,14 @@ end-policy
 
 actor BBInterfaceTransform(path, update_dynstate: proc(?BackboneInterfaceDynstate)->None, update_oper: proc(?y_2_oper.stratoweave_rfs__rfs__backbone_interface_entry)->None, dev: swdev.DeviceMgr):
     _subs = gdata.SubscriptionManager(dev.tree_provider(), str(path))
-    _dynstate = base.BBInterface.dynstate_type()()
     _oper = base.BBInterface.new_state(path)
     var rx_packets: timeseries.Counter[u64] = timeseries.Counter(None, 2)
 
     def reset_stats():
         rx_packets.clear()
-        _dynstate.pps = None
         _oper.state.rx_packets = None
         _oper.state.pps = None
         _oper.state.oper_status = None
-        #update_dynstate(_dynstate)
         update_oper(_oper)
 
     def handle_stats(stats: InterfaceStats):
@@ -208,18 +203,14 @@ actor BBInterfaceTransform(path, update_dynstate: proc(?BackboneInterfaceDynstat
         _oper.state.oper_status = stats.oper_status
         if stats.rx_packets is None:
             rx_packets.clear()
-            _dynstate.pps = None
             _oper.state.rx_packets = None
             _oper.state.pps = None
-            #update_dynstate(_dynstate)
             update_oper(_oper)
             return
         rx_packets.add(stats.rx_packets!)
         rate = rx_packets.rate()
-        _dynstate.pps = rate
         _oper.state.rx_packets = stats.rx_packets!
         _oper.state.pps = rate
-        #update_dynstate(_dynstate)
         update_oper(_oper)
 
     def on_xr_state(root: ?xr25_oper_root, err: ?Exception):
@@ -270,8 +261,10 @@ actor BBInterfaceTransform(path, update_dynstate: proc(?BackboneInterfaceDynstat
 
 class BBInterface(base.BBInterface):
     def transform(self, i, di, dynstate):
+        # dynstate is part of the framework actor contract; intentionally
+        # unused. See BBInterfaceTransform for rationale.
         print("RFS /rfs{{{di.name}}}/backbone-interface transform running [{i.name}] <-> {i.remote.device} [{i.remote.interface}]", err=True)
-        if_description = _bb_interface_description(i.remote.device, i.remote.interface, i.monitor_traffic, dynstate?.pps)
+        if_description = _bb_interface_description(i.remote.device, i.remote.interface)
 
         if "Cisco-IOS-XR-um-hostname-cfg" in di.modules:
             print("RFS /rfs{{{di.name}}}/backbone-interface transform running [{i.name}] <-> {i.remote.device} [{i.remote.interface}] for Cisco IOS XR", err=True)
